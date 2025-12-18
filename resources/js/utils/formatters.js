@@ -21,12 +21,39 @@ export function formatDate(date) {
     try {
         const d = new Date(date);
         if (isNaN(d.getTime())) return '';
-        
+
         const day = String(d.getDate()).padStart(2, '0');
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const month = months[d.getMonth()];
         const year = d.getFullYear();
-        
+
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        return date;
+    }
+}
+
+/**
+ * Format date to DD/MM/YYYY format (e.g., 18/12/2025)
+ * @param {string|Date} date - Date to format
+ * @returns {string} Formatted date string in DD/MM/YYYY format
+ */
+export function formatDateDDMMYYYY(date) {
+    if (!date) return '';
+    try {
+        // Handle YYYY-MM-DD format directly (no timezone conversion)
+        if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            const [year, month, day] = date.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+
         return `${day}/${month}/${year}`;
     } catch (error) {
         return date;

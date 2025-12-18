@@ -104,6 +104,33 @@ export default {
         },
 
         /**
+         * Format date to DD/MM/YYYY format (e.g., 18/12/2025)
+         * @param {string|Date} date - Date to format
+         * @returns {string} Formatted date string in DD/MM/YYYY format
+         */
+        formatDateDDMMYYYY(date) {
+            if (!date) return '';
+            try {
+                // Handle YYYY-MM-DD format directly (no timezone conversion)
+                if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    const [year, month, day] = date.split('-');
+                    return `${day}/${month}/${year}`;
+                }
+                
+                const d = new Date(date);
+                if (isNaN(d.getTime())) return '';
+                
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                
+                return `${day}/${month}/${year}`;
+            } catch (error) {
+                return date;
+            }
+        },
+
+        /**
          * Get authentication token from localStorage
          * @returns {string|null} Authentication token
          */
@@ -230,6 +257,23 @@ export default {
         resetSorting() {
             this.sortBy = null;
             this.sortDirection = 'asc';
+        },
+
+        /**
+         * Custom value setter - matches DatePickerVuetify pattern
+         * Dynamically sets a property value by field name
+         * @param {string} fieldName - Name of the field to set
+         * @param {*} fieldValue - Value to set
+         */
+        customValueSet(fieldName, fieldValue) {
+            // Check if field exists in filters object
+            if (this.filters && Object.prototype.hasOwnProperty.call(this.filters, fieldName)) {
+                this.filters[fieldName] = fieldValue;
+            } 
+            // Check if field exists at root level
+            else if (Object.prototype.hasOwnProperty.call(this, fieldName)) {
+                this[fieldName] = fieldValue;
+            }
         }
     }
 };

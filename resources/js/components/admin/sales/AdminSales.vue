@@ -24,11 +24,11 @@
                     </v-col>
                     <v-col cols="12" md="2">
                         <DatePicker v-model="filters.date_from" label="From Date" density="compact"
-                            @update:model-value="fetchSales" />
+                            @update:model-value="onDateFromChange" />
                     </v-col>
                     <v-col cols="12" md="2">
                         <DatePicker v-model="filters.date_to" label="To Date" density="compact"
-                            @update:model-value="fetchSales" />
+                            @update:model-value="onDateToChange" />
                     </v-col>
                     <v-col cols="12" md="3">
                         <v-text-field v-model="filters.search" label="Search Invoice/Customer"
@@ -78,7 +78,7 @@
                                 {{ sale.customer?.name || 'Walk-in' }}
                             </td>
                             <td>
-                                {{ formatDate(sale.invoice_date) }}
+                                {{ formatDateDDMMYYYY(sale.invoice_date) }}
                             </td>
                             <td class="text-end">
                                 ৳{{ parseFloat(sale.total_amount).toFixed(2) }}
@@ -160,13 +160,14 @@
 
 <script>
 import axios from '@/utils/axios.config';
-import { formatDate } from '@/utils/formatters';
 import SaleDialog from './dialogs/SaleDialog.vue';
 import ViewSaleDialog from './dialogs/ViewSaleDialog.vue';
 import DatePicker from '@/components/common/DatePicker.vue';
+import adminPaginationMixin from '@/mixins/adminPaginationMixin';
 
 export default {
     name: 'AdminSales',
+    mixins: [adminPaginationMixin],
     components: {
         SaleDialog,
         ViewSaleDialog,
@@ -288,7 +289,15 @@ export default {
             this.pagination.current_page = 1;
             this.fetchSales();
         },
-        formatDate,
+        // Date change handlers - bridge v-model to customValueSet pattern
+        onDateFromChange(value) {
+            this.customValueSet('date_from', value);
+            this.fetchSales();
+        },
+        onDateToChange(value) {
+            this.customValueSet('date_to', value);
+            this.fetchSales();
+        },
         getStatusColor(status) {
             const colors = {
                 draft: 'grey',

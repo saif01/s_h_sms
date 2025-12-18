@@ -145,10 +145,12 @@
                                     <v-row dense class="ma-0 mb-2">
                                         <v-col cols="6" class="pa-1">
                                             <DatePicker v-model="form.invoice_date" label="Invoice Date *"
-                                                density="compact" :rules="[rules.required]" :required="true" />
+                                                density="compact" :rules="[rules.required]" :required="true"
+                                                @update:model-value="onInvoiceDateChange" />
                                         </v-col>
                                         <v-col cols="6" class="pa-1">
-                                            <DatePicker v-model="form.due_date" label="Due Date" density="compact" />
+                                            <DatePicker v-model="form.due_date" label="Due Date" density="compact"
+                                                @update:model-value="onDueDateChange" />
                                         </v-col>
                                     </v-row>
 
@@ -239,9 +241,11 @@
 <script>
 import axios from '@/utils/axios.config';
 import DatePicker from '@/components/common/DatePicker.vue';
+import adminPaginationMixin from '@/mixins/adminPaginationMixin';
 
 export default {
     name: 'SaleDialog',
+    mixins: [adminPaginationMixin],
     components: {
         DatePicker,
     },
@@ -580,6 +584,25 @@ export default {
             } finally {
                 this.saving = false;
             }
+        },
+        // Date change handlers - bridge v-model to customValueSet pattern
+        onInvoiceDateChange(value) {
+            // Use customValueSet pattern for consistency
+            // Since form.invoice_date is nested, we update it directly and also use customValueSet
+            if (this.form) {
+                this.form.invoice_date = value;
+            }
+            // Also set at root level if needed (for customValueSet compatibility)
+            this.customValueSet('invoice_date', value);
+        },
+        onDueDateChange(value) {
+            // Use customValueSet pattern for consistency
+            // Since form.due_date is nested, we update it directly and also use customValueSet
+            if (this.form) {
+                this.form.due_date = value;
+            }
+            // Also set at root level if needed (for customValueSet compatibility)
+            this.customValueSet('due_date', value);
         },
         close() {
             this.$emit('update:modelValue', false);
