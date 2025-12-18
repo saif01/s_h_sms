@@ -9,16 +9,18 @@
             <v-card-text>
                 <v-row dense>
                     <v-col cols="12" md="4">
-                        <v-text-field v-model="search" label="Search by name, SKU, barcode" prepend-inner-icon="mdi-magnify"
-                            variant="outlined" density="compact" clearable @keyup.enter="loadProducts" />
+                        <v-text-field v-model="search" label="Search by name, SKU, barcode"
+                            prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable
+                            @keyup.enter="loadProducts" />
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="categoryFilter" :items="categoryOptions" item-value="value" item-title="label"
-                            label="Category" clearable variant="outlined" density="compact" @update:model-value="loadProducts" />
+                        <v-select v-model="categoryFilter" :items="categoryOptions" item-value="value"
+                            item-title="label" label="Category" clearable variant="outlined" density="compact"
+                            @update:model-value="loadProducts" />
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="activeFilter" :items="activeOptions" label="Status" clearable variant="outlined"
-                            density="compact" @update:model-value="loadProducts" />
+                        <v-select v-model="activeFilter" :items="activeOptions" label="Status" clearable
+                            variant="outlined" density="compact" @update:model-value="loadProducts" />
                     </v-col>
                 </v-row>
             </v-card-text>
@@ -71,7 +73,8 @@
                         </tr>
                     </tbody>
                 </v-table>
-                <v-pagination v-model="page" :length="pagination.last_page || 1" class="mt-3" @update:model-value="loadProducts" />
+                <v-pagination v-model="page" :length="pagination.last_page || 1" class="mt-3"
+                    @update:model-value="loadProducts" />
             </v-card-text>
         </v-card>
 
@@ -81,7 +84,7 @@
 
 <script>
 import axios from '@/utils/axios.config';
-import ProductDialog from './ProductDialog.vue';
+import ProductDialog from './dialogs/ProductDialog.vue';
 
 export default {
     name: 'AdminProducts',

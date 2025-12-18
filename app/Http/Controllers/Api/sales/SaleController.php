@@ -428,7 +428,7 @@ class SaleController extends Controller
                         'value_before' => $valueBefore,
                         'value_after' => $valueAfter,
                         'created_by' => auth()->id(),
-                        'transaction_date' => $validated['invoice_date'],
+                        'transaction_date' => now()->toDateString(),
                     ]);
                 }
             }
@@ -441,6 +441,7 @@ class SaleController extends Controller
             if (!$isDraft && $paidAmount > 0) {
                 if ($payment) {
                     $payment->update([
+                        'party_id' => $validated['customer_id'],
                         'amount' => $paidAmount,
                         'payment_method' => $validated['payment_method'] ?? 'cash',
                         'payment_date' => $validated['invoice_date'],
