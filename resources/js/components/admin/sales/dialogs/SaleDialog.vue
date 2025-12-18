@@ -1,33 +1,36 @@
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1200px"
-        persistent fullscreen>
-        <v-card>
-            <v-card-title class="d-flex justify-space-between align-center bg-primary">
-                <span class="text-h5 text-white">
-                    <v-icon class="text-white">mdi-point-of-sale</v-icon>
-                    {{ isEdit ? 'Edit Sale' : 'New Sale - POS' }}
-                </span>
-                <v-btn icon="mdi-close" variant="text" class="text-white" @click="close" />
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1400px"
+        persistent scrollable>
+        <v-card class="pos-dialog">
+            <!-- Compact Header -->
+            <v-card-title class="pos-header d-flex justify-space-between align-center pa-3">
+                <div class="d-flex align-center gap-2">
+                    <v-icon color="white">mdi-point-of-sale</v-icon>
+                    <span class="text-h6 text-white font-weight-medium">
+                        {{ isEdit ? 'Edit Sale' : 'New Sale - POS' }}
+                    </span>
+                </div>
+                <v-btn icon="mdi-close" variant="text" color="white" size="small" @click="close" />
             </v-card-title>
 
-            <v-card-text class="pa-4">
+            <v-card-text class="pa-3">
                 <v-form ref="formRef" v-model="formValid">
-                    <v-row>
+                    <v-row dense class="ma-0">
                         <!-- Left Side - Product Search & Cart -->
-                        <v-col cols="12" md="8">
+                        <v-col cols="12" lg="8" class="pa-2">
                             <!-- Product Search -->
-                            <v-card variant="outlined" class="mb-4">
-                                <v-card-text>
+                            <v-card variant="flat" class="mb-3 search-card" elevation="1">
+                                <v-card-text class="pa-3">
                                     <v-text-field v-model="productSearch" label="Search Product (Name/SKU/Barcode)"
-                                        prepend-inner-icon="mdi-magnify" clearable autofocus
-                                        @keyup.enter="searchProducts" @click:clear="searchResults = []" />
+                                        prepend-inner-icon="mdi-magnify" clearable autofocus variant="outlined"
+                                        hide-details @keyup.enter="searchProducts" @click:clear="searchResults = []" />
 
                                     <!-- Search Results -->
-                                    <v-list v-if="searchResults.length > 0" class="mt-2" density="compact">
+                                    <v-list v-if="searchResults.length > 0" class="mt-2 search-results">
                                         <v-list-item v-for="product in searchResults" :key="product.id"
-                                            @click="addToCart(product)">
+                                            @click="addToCart(product)" class="search-item">
                                             <template #prepend>
-                                                <v-avatar size="40">
+                                                <v-avatar size="40" color="grey-lighten-4">
                                                     <v-img v-if="product.image" :src="product.image" />
                                                     <v-icon v-else>mdi-package-variant</v-icon>
                                                 </v-avatar>
@@ -38,133 +41,179 @@
                                                 }}
                                             </v-list-item-subtitle>
                                             <template #append>
-                                                <v-chip color="primary" size="small">${{ product.sale_price }}</v-chip>
+                                                <v-chip color="primary" size="small" variant="flat">৳{{
+                                                    product.sale_price }}</v-chip>
                                             </template>
                                         </v-list-item>
                                     </v-list>
                                 </v-card-text>
                             </v-card>
 
-                            <!-- Cart Items -->
-                            <v-card variant="outlined">
-                                <v-card-title class="bg-grey-lighten-4">
-                                    <v-icon>mdi-cart</v-icon> Cart Items
+                            <!-- Compact Cart Items -->
+                            <v-card variant="flat" class="cart-card" elevation="1">
+                                <v-card-title class="cart-header pa-2">
+                                    <v-icon size="18" class="mr-1">mdi-cart</v-icon>
+                                    <span class="text-body-2 font-weight-medium">Cart Items ({{ cartItems.length
+                                    }})</span>
                                 </v-card-title>
                                 <v-divider />
-                                <v-card-text>
-                                    <v-table v-if="cartItems.length > 0" density="compact">
+                                <v-card-text class="pa-2">
+                                    <v-table v-if="cartItems.length > 0" density="compact" class="cart-table">
                                         <thead>
                                             <tr>
-                                                <th>Product</th>
-                                                <th width="100">Qty</th>
-                                                <th width="120">Price</th>
-                                                <th width="100">Disc.</th>
-                                                <th width="100">Tax</th>
-                                                <th width="120">Total</th>
-                                                <th width="50"></th>
+                                                <th class="text-caption">Product</th>
+                                                <th class="text-caption text-center" style="width: 70px;">Qty</th>
+                                                <th class="text-caption text-end" style="width: 90px;">Price</th>
+                                                <th class="text-caption text-end" style="width: 80px;">Disc.</th>
+                                                <th class="text-caption text-end" style="width: 80px;">Tax</th>
+                                                <th class="text-caption text-end" style="width: 100px;">Total</th>
+                                                <th class="text-caption" style="width: 40px;"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="(item, index) in cartItems" :key="index">
-                                                <td>{{ item.product_name }}</td>
-                                                <td>
+                                            <tr v-for="(item, index) in cartItems" :key="index" class="cart-row">
+                                                <td class="text-body-2">{{ item.product_name }}</td>
+                                                <td class="pa-1">
                                                     <v-text-field v-model.number="item.quantity" type="number" min="1"
-                                                        density="compact" hide-details
+                                                        density="compact" hide-details variant="outlined"
+                                                        class="cart-input"
                                                         @update:model-value="updateCartItem(index)" />
                                                 </td>
-                                                <td>
+                                                <td class="pa-1">
                                                     <v-text-field v-model.number="item.unit_price" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details
+                                                        step="0.01" density="compact" hide-details variant="outlined"
+                                                        class="cart-input"
                                                         @update:model-value="updateCartItem(index)" />
                                                 </td>
-                                                <td>
+                                                <td class="pa-1">
                                                     <v-text-field v-model.number="item.discount" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details
+                                                        step="0.01" density="compact" hide-details variant="outlined"
+                                                        class="cart-input"
                                                         @update:model-value="updateCartItem(index)" />
                                                 </td>
-                                                <td>
+                                                <td class="pa-1">
                                                     <v-text-field v-model.number="item.tax" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details
+                                                        step="0.01" density="compact" hide-details variant="outlined"
+                                                        class="cart-input"
                                                         @update:model-value="updateCartItem(index)" />
                                                 </td>
-                                                <td class="font-weight-bold">${{ item.total.toFixed(2) }}</td>
-                                                <td>
-                                                    <v-btn icon="mdi-delete" size="small" variant="text" color="error"
+                                                <td class="text-body-2 font-weight-bold text-end">৳{{
+                                                    item.total.toFixed(2) }}</td>
+                                                <td class="text-center">
+                                                    <v-btn icon="mdi-delete" size="x-small" variant="text" color="error"
                                                         @click="removeFromCart(index)" />
                                                 </td>
                                             </tr>
                                         </tbody>
                                     </v-table>
-                                    <v-alert v-else type="info" variant="tonal" class="mt-2">
-                                        Cart is empty. Search and add products.
+                                    <v-alert v-else type="info" variant="tonal" density="compact" class="mt-2 mb-0">
+                                        <span class="text-caption">Cart is empty. Search and add products.</span>
                                     </v-alert>
                                 </v-card-text>
                             </v-card>
                         </v-col>
 
                         <!-- Right Side - Sale Details & Totals -->
-                        <v-col cols="12" md="4">
-                            <v-card variant="outlined">
-                                <v-card-text>
-                                    <!-- Customer Selection -->
-                                    <v-autocomplete v-model="form.customer_id" :items="customers" item-value="id"
-                                        item-title="name" label="Customer *" clearable :rules="[rules.required]">
-                                        <template #prepend>
-                                            <v-icon>mdi-account</v-icon>
-                                        </template>
-                                    </v-autocomplete>
+                        <v-col cols="12" lg="4" class="pa-2">
+                            <v-card variant="flat" class="details-card" elevation="1">
+                                <v-card-text class="pa-2">
+                                    <!-- Customer & Warehouse -->
+                                    <div class="mb-2">
+                                        <v-autocomplete v-model="form.customer_id" :items="customers" item-value="id"
+                                            item-title="name" label="Customer *" clearable density="compact"
+                                            variant="outlined" hide-details :rules="[rules.required]">
+                                            <template #prepend-inner>
+                                                <v-icon size="18">mdi-account</v-icon>
+                                            </template>
+                                        </v-autocomplete>
+                                    </div>
 
-                                    <!-- Warehouse Selection -->
-                                    <v-select v-model="form.warehouse_id" :items="warehouses" item-value="id"
-                                        item-title="name" label="Warehouse *" :rules="[rules.required]" />
+                                    <div class="mb-2">
+                                        <v-select v-model="form.warehouse_id" :items="warehouses" item-value="id"
+                                            item-title="name" label="Warehouse *" density="compact" variant="outlined"
+                                            hide-details :rules="[rules.required]">
+                                            <template #prepend-inner>
+                                                <v-icon size="18">mdi-warehouse</v-icon>
+                                            </template>
+                                        </v-select>
+                                    </div>
 
-                                    <!-- Invoice Date -->
-                                    <DatePicker v-model="form.invoice_date" label="Invoice Date *"
-                                        :rules="[rules.required]" :required="true" />
+                                    <!-- Dates -->
+                                    <v-row dense class="ma-0 mb-2">
+                                        <v-col cols="6" class="pa-1">
+                                            <DatePicker v-model="form.invoice_date" label="Invoice Date *"
+                                                density="compact" :rules="[rules.required]" :required="true" />
+                                        </v-col>
+                                        <v-col cols="6" class="pa-1">
+                                            <DatePicker v-model="form.due_date" label="Due Date" density="compact" />
+                                        </v-col>
+                                    </v-row>
 
-                                    <!-- Due Date -->
-                                    <DatePicker v-model="form.due_date" label="Due Date" />
+                                    <v-divider class="my-2" />
 
-                                    <v-divider class="my-4" />
+                                    <!-- Totals Section -->
+                                    <div class="totals-section">
+                                        <div class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Subtotal:</span>
+                                            <span class="text-body-2 font-weight-medium">৳{{ form.subtotal.toFixed(2)
+                                            }}</span>
+                                        </div>
 
-                                    <!-- Subtotal -->
-                                    <v-text-field v-model.number="form.subtotal" label="Subtotal" readonly
-                                        prepend-icon="mdi-calculator" />
+                                        <div class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Discount:</span>
+                                            <v-text-field v-model.number="form.discount_amount" type="number"
+                                                density="compact" variant="outlined" hide-details min="0" step="0.01"
+                                                class="compact-input" @update:model-value="calculateTotals" />
+                                        </div>
 
-                                    <!-- Discount -->
-                                    <v-text-field v-model.number="form.discount_amount" type="number"
-                                        label="Invoice Discount" min="0" step="0.01"
-                                        @update:model-value="calculateTotals" />
+                                        <div class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Tax:</span>
+                                            <v-text-field v-model.number="form.tax_amount" type="number"
+                                                density="compact" variant="outlined" hide-details min="0" step="0.01"
+                                                class="compact-input" @update:model-value="calculateTotals" />
+                                        </div>
 
-                                    <!-- Tax -->
-                                    <v-text-field v-model.number="form.tax_amount" type="number" label="Additional Tax"
-                                        min="0" step="0.01" @update:model-value="calculateTotals" />
+                                        <div class="d-flex justify-space-between mb-2">
+                                            <span class="text-caption text-grey">Shipping:</span>
+                                            <v-text-field v-model.number="form.shipping_cost" type="number"
+                                                density="compact" variant="outlined" hide-details min="0" step="0.01"
+                                                class="compact-input" @update:model-value="calculateTotals" />
+                                        </div>
 
-                                    <!-- Shipping -->
-                                    <v-text-field v-model.number="form.shipping_cost" type="number"
-                                        label="Shipping Cost" min="0" step="0.01"
-                                        @update:model-value="calculateTotals" />
+                                        <v-divider class="my-2" />
 
-                                    <v-divider class="my-4" />
+                                        <div class="d-flex justify-space-between mb-2 total-amount">
+                                            <span class="text-body-1 font-weight-bold">Total:</span>
+                                            <span class="text-h6 font-weight-bold text-primary">৳{{
+                                                form.total_amount.toFixed(2) }}</span>
+                                        </div>
 
-                                    <!-- Total Amount -->
-                                    <v-text-field v-model.number="form.total_amount" label="Total Amount" readonly
-                                        class="text-h6" prepend-icon="mdi-cash" />
+                                        <div class="mb-2">
+                                            <v-text-field v-model.number="form.paid_amount" type="number"
+                                                label="Paid Amount" density="compact" variant="outlined" min="0"
+                                                step="0.01" prepend-inner-icon="mdi-cash"
+                                                @update:model-value="calculateBalance" />
+                                        </div>
 
-                                    <!-- Paid Amount -->
-                                    <v-text-field v-model.number="form.paid_amount" type="number" label="Paid Amount"
-                                        min="0" step="0.01" @update:model-value="calculateBalance" />
+                                        <div class="mb-2">
+                                            <v-text-field v-model.number="form.balance_amount" label="Balance (Due)"
+                                                density="compact" variant="outlined" readonly
+                                                :color="form.balance_amount > 0 ? 'error' : 'success'"
+                                                :class="form.balance_amount > 0 ? 'text-error' : 'text-success'" />
+                                        </div>
 
-                                    <!-- Balance/Due -->
-                                    <v-text-field v-model.number="form.balance_amount" label="Balance (Due)" readonly
-                                        :class="form.balance_amount > 0 ? 'text-error' : 'text-success'" />
+                                        <div v-if="form.paid_amount > 0" class="mb-2">
+                                            <v-select v-model="paymentMethod" :items="paymentMethods"
+                                                label="Payment Method" density="compact" variant="outlined"
+                                                hide-details />
+                                        </div>
+                                    </div>
 
-                                    <!-- Payment Method -->
-                                    <v-select v-model="paymentMethod" :items="paymentMethods" label="Payment Method"
-                                        v-if="form.paid_amount > 0" />
+                                    <v-divider class="my-2" />
 
                                     <!-- Notes -->
-                                    <v-textarea v-model="form.notes" label="Notes" rows="2" />
+                                    <v-textarea v-model="form.notes" label="Notes" rows="2" density="compact"
+                                        variant="outlined" hide-details />
                                 </v-card-text>
                             </v-card>
                         </v-col>
@@ -173,10 +222,11 @@
             </v-card-text>
 
             <v-divider />
-            <v-card-actions class="justify-end pa-4">
-                <v-btn variant="text" @click="close">Cancel</v-btn>
-                <v-btn color="success" :loading="saving" :disabled="cartItems.length === 0" @click="save">
-                    <v-icon>mdi-content-save</v-icon> {{ isEdit ? 'Update' : 'Save Sale' }}
+            <v-card-actions class="pa-2 justify-end">
+                <v-btn variant="text" size="small" @click="close">Cancel</v-btn>
+                <v-btn color="success" size="small" :loading="saving" :disabled="cartItems.length === 0" @click="save">
+                    <v-icon size="18" class="mr-1">mdi-content-save</v-icon>
+                    {{ isEdit ? 'Update' : 'Save Sale' }}
                 </v-btn>
             </v-card-actions>
         </v-card>
@@ -230,7 +280,6 @@ export default {
             immediate: true,
             async handler(newVal) {
                 if (newVal && newVal.id) {
-                    // Load full sale details when editing
                     await this.loadSaleForEdit(newVal.id);
                 } else {
                     this.form = this.getEmptyForm();
@@ -241,13 +290,11 @@ export default {
         modelValue(val) {
             if (val) {
                 this.fetchOptions();
-                // Reset form when opening new dialog
                 if (!this.sale || !this.sale.id) {
                     this.form = this.getEmptyForm();
                     this.cartItems = [];
                 }
             } else {
-                // Reset when closing
                 this.form = this.getEmptyForm();
                 this.cartItems = [];
             }
@@ -363,7 +410,6 @@ export default {
 
                 console.log('Loading sale for edit:', sale);
 
-                // Populate form with sale data
                 this.form = {
                     id: sale.id,
                     customer_id: sale.customer_id,
@@ -380,7 +426,6 @@ export default {
                     notes: sale.notes || '',
                 };
 
-                // Load sale items
                 if (sale.items && Array.isArray(sale.items) && sale.items.length > 0) {
                     this.cartItems = sale.items.map(item => {
                         const subtotal = (item.quantity || 0) * (item.unit_price || 0);
@@ -402,7 +447,6 @@ export default {
                     this.cartItems = [];
                 }
 
-                // Recalculate totals to ensure consistency
                 this.calculateTotals();
             } catch (error) {
                 console.error('Failed to load sale for edit:', error);
@@ -443,13 +487,11 @@ export default {
             }
         },
         async save() {
-            // Validate cart items
             if (this.cartItems.length === 0) {
                 this.showError('Please add at least one product');
                 return;
             }
 
-            // Validate form fields (if formRef exists)
             if (this.$refs.formRef) {
                 const { valid } = await this.$refs.formRef.validate();
                 if (!valid) {
@@ -458,7 +500,6 @@ export default {
                 }
             }
 
-            // Additional validation
             if (!this.form.customer_id) {
                 this.showError('Please select a customer');
                 return;
@@ -469,7 +510,6 @@ export default {
                 return;
             }
 
-            // Validate invoice date
             if (!this.form.invoice_date) {
                 this.showError('Please select an invoice date');
                 return;
@@ -547,3 +587,129 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.pos-dialog {
+    max-height: 95vh;
+}
+
+.pos-header {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.search-card,
+.cart-card,
+.details-card {
+    border-radius: 8px;
+    height: 100%;
+}
+
+.cart-header {
+    background-color: rgba(0, 0, 0, 0.02);
+    font-size: 0.875rem;
+}
+
+.cart-table {
+    font-size: 0.875rem;
+}
+
+.cart-table th {
+    font-weight: 600;
+    padding: 8px 4px;
+}
+
+.cart-table td {
+    padding: 4px;
+}
+
+.cart-input :deep(.v-field) {
+    font-size: 0.75rem;
+}
+
+.cart-input :deep(.v-field__input) {
+    padding: 4px 8px;
+    min-height: 32px;
+}
+
+.cart-row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+}
+
+.search-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-item:hover {
+    background-color: rgba(25, 118, 210, 0.08);
+}
+
+.totals-section {
+    background-color: rgba(0, 0, 0, 0.02);
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.compact-input {
+    max-width: 120px;
+}
+
+.compact-input :deep(.v-field) {
+    font-size: 0.75rem;
+}
+
+.compact-input :deep(.v-field__input) {
+    padding: 4px 8px;
+    min-height: 32px;
+}
+
+.total-amount {
+    padding: 8px;
+    background-color: rgba(25, 118, 210, 0.1);
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+:deep(.v-text-field--density-compact .v-field) {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+:deep(.v-select--density-compact .v-field) {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+:deep(.v-autocomplete--density-compact .v-field) {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+:deep(.v-textarea--density-compact .v-field) {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Red required field stars */
+:deep(.v-label--required .v-label__asterisk) {
+    color: rgb(176, 0, 32) !important;
+}
+
+:deep(.v-field-label--required .v-label__asterisk) {
+    color: rgb(176, 0, 32) !important;
+}
+
+:deep(.v-input--required .v-label__asterisk) {
+    color: rgb(176, 0, 32) !important;
+}
+</style>
