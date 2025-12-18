@@ -1,0 +1,362 @@
+<template>
+    <div>
+        <div class="page-header">
+            <h1 class="text-h4 page-title">Supplier Invoices (Purchases)</h1>
+            <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog(null)" class="add-button">
+                New Purchase Invoice
+            </v-btn>
+        </div>
+
+        <!-- Search and Filter -->
+        <v-card class="mb-4">
+            <v-card-text>
+                <v-row>
+                    <v-col cols="12" md="3">
+                        <v-select v-model="perPage" :items="perPageOptions" label="Items per page"
+                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
+                            @update:model-value="onPerPageChange"></v-select>
+                    </v-col>
+                    <v-col cols="12" md="3">
+                        <v-select v-model="statusFilter" :items="statusOptions" label="Filter by Status"
+                            variant="outlined" density="compact" clearable
+                            @update:model-value="loadPurchases"></v-select>
+                    </v-col>
+                    <v-col cols="12" md="3">
+                        <v-select v-model="supplierFilter" :items="supplierOptions" label="Filter by Supplier"
+                            variant="outlined" density="compact" clearable
+                            @update:model-value="loadPurchases"></v-select>
+                    </v-col>
+                    <v-col cols="12" md="3">
+                        <v-text-field v-model="search" label="Search by invoice number" prepend-inner-icon="mdi-magnify"
+                            variant="outlined" density="compact" clearable @input="loadPurchases"></v-text-field>
+                    </v-col>
+                </v-row>
+            </v-card-text>
+        </v-card>
+
+        <!-- Purchases Table -->
+        <v-card>
+            <v-card-title class="d-flex justify-space-between align-center">
+                <span>Supplier Invoices</span>
+                <span class="text-caption text-grey">
+                    Total Records: <strong>{{ pagination.total || 0 }}</strong>
+                </span>
+            </v-card-title>
+            <v-card-text>
+                <v-table>
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Supplier</th>
+                            <th>Warehouse</th>
+                            <th>Invoice Date</th>
+                            <th>Status</th>
+                            <th>Total Amount</th>
+                            <th>Paid</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="loading" v-for="n in 5" :key="`skeleton-${n}`">
+                            <td><v-skeleton-loader type="text" width="120"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="150"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="80" height="24"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="button" width="32" height="32"></v-skeleton-loader></td>
+                        </tr>
+                        <template v-else>
+                            <tr v-for="purchase in purchases" :key="purchase.id">
+                                <td>{{ purchase.invoice_number }}</td>
+                                <td>{{ purchase.supplier?.name }}</td>
+                                <td>{{ purchase.warehouse?.name }}</td>
+                                <td>{{ formatDate(purchase.invoice_date) }}</td>
+                                <td>
+                                    <v-chip :color="getStatusColor(purchase.status)" size="small">
+                                        {{ purchase.status }}
+                                    </v-chip>
+                                </td>
+                                <td>{{ formatCurrency(purchase.total_amount) }}</td>
+                                <td>{{ formatCurrency(purchase.paid_amount) }}</td>
+                                <td>
+                                    <v-chip :color="purchase.balance_amount > 0 ? 'warning' : 'success'" size="small">
+                                        {{ formatCurrency(purchase.balance_amount) }}
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <v-btn size="small" icon="mdi-eye" @click="viewPurchase(purchase)" variant="text"
+                                        title="View"></v-btn>
+                                    <v-btn v-if="purchase.status === 'draft'" size="small" icon="mdi-pencil"
+                                        @click="openDialog(purchase)" variant="text" title="Edit"></v-btn>
+                                    <v-btn v-if="purchase.status === 'draft'" size="small" icon="mdi-package-variant"
+                                        @click="receivePurchase(purchase)" variant="text" color="success"
+                                        title="Receive Stock"></v-btn>
+                                    <v-btn v-if="purchase.status === 'draft'" size="small" icon="mdi-delete"
+                                        @click="deletePurchase(purchase)" variant="text" color="error"
+                                        title="Delete"></v-btn>
+                                </td>
+                            </tr>
+                            <tr v-if="purchases.length === 0">
+                                <td colspan="9" class="text-center py-4">No purchases found</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </v-table>
+
+                <!-- Pagination -->
+                <div
+                    class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <div class="text-caption text-grey">
+                        <span v-if="purchases.length > 0 && pagination.total > 0">
+                            Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                            <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
+                        </span>
+                        <span v-else>No records found</span>
+                    </div>
+                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
+                        <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
+                            density="comfortable" @update:model-value="loadPurchases">
+                        </v-pagination>
+                    </div>
+                </div>
+            </v-card-text>
+        </v-card>
+
+        <!-- Purchase Dialog -->
+        <PurchaseDialog v-model="dialog" :editing-purchase="editingPurchase" :supplier-options="supplierOptions"
+            :warehouse-options="warehouseOptions" :product-options="productOptions"
+            :saving="saving" @save="handleSavePurchase" @cancel="closeDialog" />
+
+        <!-- View Purchase Dialog -->
+        <ViewPurchaseDialog v-model="viewDialog" :purchase="viewingPurchase" />
+    </div>
+</template>
+
+<script>
+import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import PurchaseDialog from './dialogs/PurchaseDialog.vue';
+import ViewPurchaseDialog from './dialogs/ViewPurchaseDialog.vue';
+
+export default {
+    components: {
+        PurchaseDialog,
+        ViewPurchaseDialog
+    },
+    mixins: [adminPaginationMixin],
+    data() {
+        return {
+            purchases: [],
+            suppliers: [],
+            supplierOptions: [],
+            warehouses: [],
+            warehouseOptions: [],
+            products: [],
+            productOptions: [],
+            statusFilter: null,
+            statusOptions: [
+                { title: 'Draft', value: 'draft' },
+                { title: 'Pending', value: 'pending' },
+                { title: 'Partial', value: 'partial' },
+                { title: 'Paid', value: 'paid' },
+                { title: 'Cancelled', value: 'cancelled' }
+            ],
+            supplierFilter: null,
+            dialog: false,
+            editingPurchase: null,
+            saving: false,
+            viewDialog: false,
+            viewingPurchase: null
+        };
+    },
+    async mounted() {
+        await this.loadSuppliers();
+        await this.loadWarehouses();
+        await this.loadProducts();
+        await this.loadPurchases();
+    },
+    methods: {
+        async loadPurchases() {
+            try {
+                this.loading = true;
+                const params = this.buildPaginationParams();
+
+                if (this.search) {
+                    params.search = this.search;
+                }
+                if (this.statusFilter) {
+                    params.status = this.statusFilter;
+                }
+                if (this.supplierFilter) {
+                    params.supplier_id = this.supplierFilter;
+                }
+
+                const response = await this.$axios.get('/api/v1/purchases', {
+                    params,
+                    headers: this.getAuthHeaders()
+                });
+
+                this.purchases = response.data.data || [];
+                this.updatePagination(response.data);
+            } catch (error) {
+                this.handleApiError(error, 'Failed to load purchases');
+            } finally {
+                this.loading = false;
+            }
+        },
+        async loadSuppliers() {
+            try {
+                const response = await this.$axios.get('/api/v1/suppliers', {
+                    params: { per_page: 1000 },
+                    headers: this.getAuthHeaders()
+                });
+                const list = response.data.data || response.data || [];
+                this.suppliers = list;
+                this.supplierOptions = list.map(s => ({ label: s.name, value: s.id }));
+            } catch (error) {
+                console.error('Error loading suppliers:', error);
+            }
+        },
+        async loadWarehouses() {
+            try {
+                const response = await this.$axios.get('/api/v1/stock-ledger/warehouses', {
+                    headers: this.getAuthHeaders()
+                });
+                this.warehouses = response.data.warehouses || [];
+                this.warehouseOptions = this.warehouses;
+            } catch (error) {
+                console.error('Error loading warehouses:', error);
+            }
+        },
+        async loadProducts() {
+            try {
+                const response = await this.$axios.get('/api/v1/products', {
+                    params: { per_page: 1000, is_active: true },
+                    headers: this.getAuthHeaders()
+                });
+                this.products = response.data.data || [];
+                this.productOptions = this.products.map(p => ({
+                    label: `${p.name} (${p.sku})`,
+                    value: p.id
+                }));
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        },
+        openDialog(purchase) {
+            this.editingPurchase = purchase || null;
+            this.dialog = true;
+        },
+        closeDialog() {
+            this.dialog = false;
+            this.editingPurchase = null;
+        },
+        async handleSavePurchase(formData, errorMessage) {
+            if (errorMessage) {
+                this.showError(errorMessage);
+                return;
+            }
+
+            this.saving = true;
+            try {
+                const token = localStorage.getItem('admin_token');
+                const url = this.editingPurchase
+                    ? `/api/v1/purchases/${this.editingPurchase.id}`
+                    : '/api/v1/purchases';
+
+                const method = this.editingPurchase ? 'put' : 'post';
+
+                await axios[method](url, formData, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                this.showSuccess(
+                    this.editingPurchase ? 'Purchase updated successfully' : 'Purchase created successfully'
+                );
+                this.closeDialog();
+                await this.loadPurchases();
+            } catch (error) {
+                this.handleApiError(error, 'Error saving purchase');
+            } finally {
+                this.saving = false;
+            }
+        },
+        async receivePurchase(purchase) {
+            if (!confirm(`Receive stock for purchase ${purchase.invoice_number}? This will update stock levels.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('admin_token');
+                await this.$axios.post(`/api/v1/purchases/${purchase.id}/receive`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                this.showSuccess('Purchase received and stock updated successfully');
+                await this.loadPurchases();
+            } catch (error) {
+                this.handleApiError(error, 'Error receiving purchase');
+            }
+        },
+        async deletePurchase(purchase) {
+            if (!confirm(`Delete purchase ${purchase.invoice_number}?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('admin_token');
+                await this.$axios.delete(`/api/v1/purchases/${purchase.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                this.showSuccess('Purchase deleted successfully');
+                await this.loadPurchases();
+            } catch (error) {
+                this.handleApiError(error, 'Error deleting purchase');
+            }
+        },
+        async viewPurchase(purchase) {
+            try {
+                const response = await this.$axios.get(`/api/v1/purchases/${purchase.id}`, {
+                    headers: this.getAuthHeaders()
+                });
+                this.viewingPurchase = response.data;
+                this.viewDialog = true;
+            } catch (error) {
+                this.handleApiError(error, 'Failed to load purchase details');
+            }
+        },
+        formatCurrency(value) {
+            if (value === null || value === undefined) return '৳0.00';
+            return '৳' + new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        },
+        getStatusColor(status) {
+            const colors = {
+                'draft': 'grey',
+                'pending': 'warning',
+                'partial': 'info',
+                'paid': 'success',
+                'cancelled': 'error'
+            };
+            return colors[status] || 'default';
+        },
+        onPerPageChange() {
+            this.resetPagination();
+            this.loadPurchases();
+        }
+    }
+};
+</script>
+
+<style scoped>
+.gap-2 {
+    gap: 8px;
+}
+</style>
