@@ -183,18 +183,38 @@
                                                 }}</span>
                                         </div>
 
-                                        <div class="d-flex justify-space-between mb-1">
-                                            <span class="text-caption text-grey">Discount:</span>
-                                            <v-text-field v-model.number="form.discount_amount" type="number"
-                                                density="compact" variant="outlined" hide-details min="0" step="0.01"
-                                                class="compact-input" @update:model-value="calculateTotals" />
+                                        <div v-if="calculatedItemsDiscount > 0"
+                                            class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Item Discounts:</span>
+                                            <span class="text-body-2 text-error">-৳{{ calculatedItemsDiscount.toFixed(2)
+                                            }}</span>
                                         </div>
 
                                         <div class="d-flex justify-space-between mb-1">
-                                            <span class="text-caption text-grey">Tax:</span>
+                                            <span class="text-caption text-grey">Order Discount:</span>
+                                            <v-text-field v-model.number="form.discount_amount" type="number"
+                                                density="compact" variant="outlined" hide-details min="0" step="0.01"
+                                                class="compact-input"
+                                                @update:model-value="() => { discountAmountManuallySet = true; calculateTotals(); }" />
+                                        </div>
+
+                                        <div v-if="calculatedItemsTax > 0" class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Item Tax:</span>
+                                            <span class="text-body-2">৳{{ calculatedItemsTax.toFixed(2) }}</span>
+                                        </div>
+
+                                        <div class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey">Order Tax:</span>
                                             <v-text-field v-model.number="form.tax_amount" type="number"
                                                 density="compact" variant="outlined" hide-details min="0" step="0.01"
-                                                class="compact-input" @update:model-value="calculateTotals" />
+                                                class="compact-input"
+                                                @update:model-value="() => { taxAmountManuallySet = true; calculateTotals(); }" />
+                                        </div>
+
+                                        <div v-if="calculatedTotalTax > 0" class="d-flex justify-space-between mb-1">
+                                            <span class="text-caption text-grey font-weight-medium">Total Tax:</span>
+                                            <span class="text-body-2 font-weight-medium">৳{{
+                                                calculatedTotalTax.toFixed(2) }}</span>
                                         </div>
 
                                         <div class="d-flex justify-space-between mb-2">
@@ -300,11 +320,29 @@ export default {
             rules: {
                 required: v => !!v || 'Required',
             },
+            // Track if discount_amount and tax_amount were manually edited
+            discountAmountManuallySet: false,
+            taxAmountManuallySet: false,
         };
     },
     computed: {
         isEdit() {
             return !!this.form.id;
+        },
+        calculatedItemsDiscount() {
+            return this.cartItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+        },
+        calculatedItemsTax() {
+            return this.cartItems.reduce((sum, item) => sum + (item.tax || 0), 0);
+        },
+        calculatedTotalTax() {
+            const itemsTax = this.calculatedItemsTax;
+            const orderTax = parseFloat(this.form.tax_amount) || 0;
+            // Use order tax if manually set or > 0, otherwise use items tax only
+            const finalOrderTax = (this.form.tax_amount > 0 || this.taxAmountManuallySet || (this.form.tax_amount === 0 && itemsTax === 0))
+                ? orderTax
+                : 0;
+            return itemsTax + finalOrderTax;
         },
     },
     watch: {
@@ -316,6 +354,8 @@ export default {
                 } else {
                     this.form = this.getEmptyForm();
                     this.cartItems = [];
+                    this.discountAmountManuallySet = false;
+                    this.taxAmountManuallySet = false;
                 }
             },
         },
@@ -326,10 +366,14 @@ export default {
                 if (!this.sale || !this.sale.id) {
                     this.form = this.getEmptyForm();
                     this.cartItems = [];
+                    this.discountAmountManuallySet = false;
+                    this.taxAmountManuallySet = false;
                 }
             } else {
                 this.form = this.getEmptyForm();
                 this.cartItems = [];
+                this.discountAmountManuallySet = false;
+                this.taxAmountManuallySet = false;
             }
         },
     },
@@ -542,6 +586,10 @@ export default {
                     notes: sale.notes || '',
                 };
 
+                // When loading existing sale, these values were explicitly set, so mark as manually set
+                this.discountAmountManuallySet = true;
+                this.taxAmountManuallySet = true;
+
                 if (sale.items && Array.isArray(sale.items) && sale.items.length > 0) {
                     this.cartItems = sale.items.map(item => {
                         const subtotal = (item.quantity || 0) * (item.unit_price || 0);
@@ -671,20 +719,24 @@ export default {
                 };
 
                 // Backend logic: if discount_amount/tax_amount not provided, it calculates from items
-                // Only send these if they differ from item totals (user has overridden)
+                // Only send these if:
+                // 1. Value is > 0 (user set a positive value), OR
+                // 2. Value is 0 AND field was manually set (user explicitly wants to override item discounts/taxes with 0), OR
+                // 3. Value is 0 AND items also have 0 (same result either way)
+                // Don't send if value is 0, not manually set, and items have discounts/taxes (let backend calculate from items)
                 const discountAmount = parseFloat(this.form.discount_amount) || 0;
-                if (Math.abs(discountAmount - itemsDiscount) > 0.01) {
-                    // User has set a different value, send it
+                if (discountAmount > 0 || this.discountAmountManuallySet || (discountAmount === 0 && itemsDiscount === 0)) {
+                    // Send if positive, manually set, or explicit zero when no item discounts
                     payload.discount_amount = discountAmount;
                 }
-                // Otherwise, don't send it - backend will calculate from items
+                // Otherwise (default 0 with item discounts), don't send - backend will calculate from items
 
                 const taxAmount = parseFloat(this.form.tax_amount) || 0;
-                if (Math.abs(taxAmount - itemsTax) > 0.01) {
-                    // User has set a different value, send it
+                if (taxAmount > 0 || this.taxAmountManuallySet || (taxAmount === 0 && itemsTax === 0)) {
+                    // Send if positive, manually set, or explicit zero when no item taxes
                     payload.tax_amount = taxAmount;
                 }
-                // Otherwise, don't send it - backend will calculate from items
+                // Otherwise (default 0 with item taxes), don't send - backend will calculate from items
 
                 // Add status if provided (for draft) - ensure it's a string
                 if (status && typeof status === 'string') {
@@ -739,6 +791,8 @@ export default {
             this.form = this.getEmptyForm();
             this.cartItems = [];
             this.searchResults = [];
+            this.discountAmountManuallySet = false;
+            this.taxAmountManuallySet = false;
         },
     },
 };
