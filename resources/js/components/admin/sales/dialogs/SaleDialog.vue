@@ -116,7 +116,7 @@
                                                     <v-text-field v-model.number="item.tax" type="number" min="0"
                                                         step="0.01" density="compact" hide-details variant="outlined"
                                                         class="cart-input"
-                                                        @update:model-value="updateCartItem(index)" />
+                                                        @update:model-value="updateCartItem(index, true)" />
                                                 </td>
                                                 <td class="text-body-2 font-weight-bold text-end">৳{{
                                                     item.total.toFixed(2) }}</td>
@@ -416,16 +416,19 @@ export default {
                 this.cartItems[existingIndex].quantity++;
                 this.updateCartItem(existingIndex);
             } else {
-                const taxAmount = (product.sale_price * (product.tax_rate || 0)) / 100;
+                const taxRate = parseFloat(product.tax_rate || 0);
                 this.cartItems.push({
                     product_id: product.id,
                     product_name: product.name,
                     quantity: 1,
                     unit_price: parseFloat(product.sale_price),
                     discount: 0,
-                    tax: parseFloat(taxAmount.toFixed(2)),
-                    total: parseFloat(product.sale_price) + taxAmount,
+                    tax_rate: taxRate,
+                    tax: 0, // Will be calculated in updateCartItem
+                    total: 0, // Will be calculated in updateCartItem
                 });
+                // Calculate tax and total for the new item
+                this.updateCartItem(this.cartItems.length - 1);
             }
 
             // Auto-select warehouse if not already selected
@@ -447,10 +450,27 @@ export default {
             this.searchResults = [];
             this.calculateTotals();
         },
-        updateCartItem(index) {
+        updateCartItem(index, skipTaxRecalc = false) {
             const item = this.cartItems[index];
+            if (!item) return;
+
             const subtotal = item.quantity * item.unit_price;
-            item.total = subtotal - item.discount + item.tax;
+            const amountAfterDiscount = subtotal - (item.discount || 0);
+
+            // Calculate tax on amount after discount (unless manually edited)
+            if (!skipTaxRecalc) {
+                const taxRate = parseFloat(item.tax_rate || 0);
+                item.tax = parseFloat((amountAfterDiscount * taxRate / 100).toFixed(2));
+            } else {
+                // Tax was manually edited - recalculate effective tax_rate for future calculations
+                if (amountAfterDiscount > 0 && item.tax > 0) {
+                    item.tax_rate = parseFloat(((item.tax / amountAfterDiscount) * 100).toFixed(2));
+                }
+            }
+
+            // Total = subtotal - discount + tax
+            item.total = parseFloat((amountAfterDiscount + item.tax).toFixed(2));
+
             this.calculateTotals();
         },
         removeFromCart(index) {
@@ -458,18 +478,31 @@ export default {
             this.calculateTotals();
         },
         calculateTotals() {
+            // Calculate item-level totals
             const itemsSubtotal = this.cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-            const itemsDiscount = this.cartItems.reduce((sum, item) => sum + item.discount, 0);
-            const itemsTax = this.cartItems.reduce((sum, item) => sum + item.tax, 0);
+            const itemsDiscount = this.cartItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+            const itemsTax = this.cartItems.reduce((sum, item) => sum + (item.tax || 0), 0);
 
+            // Set subtotal (sum of quantity × unit_price for all items)
             this.form.subtotal = parseFloat(itemsSubtotal.toFixed(2));
 
+            // Backend logic: $discountAmount = $validated['discount_amount'] ?? $discountTotal;
+            // For UI calculation: if form value is 0 and items have discounts/taxes, use item totals
+            // Otherwise, use form value (user has overridden)
+            const discountAmount = (this.form.discount_amount > 0 || (this.form.discount_amount === 0 && itemsDiscount === 0))
+                ? parseFloat(this.form.discount_amount)
+                : itemsDiscount;
+
+            const taxAmount = (this.form.tax_amount > 0 || (this.form.tax_amount === 0 && itemsTax === 0))
+                ? parseFloat(this.form.tax_amount)
+                : itemsTax;
+
+            // Calculate total: subtotal - discount + tax + shipping
+            // This matches backend: $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
             const total = itemsSubtotal
-                - itemsDiscount
-                - (this.form.discount_amount || 0)
-                + itemsTax
-                + (this.form.tax_amount || 0)
-                + (this.form.shipping_cost || 0);
+                - discountAmount
+                + taxAmount
+                + (parseFloat(this.form.shipping_cost) || 0);
 
             this.form.total_amount = parseFloat(total.toFixed(2));
             this.calculateBalance();
@@ -513,8 +546,21 @@ export default {
                     this.cartItems = sale.items.map(item => {
                         const subtotal = (item.quantity || 0) * (item.unit_price || 0);
                         const discount = parseFloat(item.discount || 0);
-                        const tax = parseFloat(item.tax || 0);
-                        const total = subtotal - discount + tax;
+                        const amountAfterDiscount = subtotal - discount;
+
+                        // Get tax_rate from product or calculate from existing tax
+                        let taxRate = 0;
+                        if (item.product?.tax_rate !== undefined) {
+                            taxRate = parseFloat(item.product.tax_rate || 0);
+                        } else if (amountAfterDiscount > 0) {
+                            // Calculate tax_rate from existing tax (for backward compatibility)
+                            const existingTax = parseFloat(item.tax || 0);
+                            taxRate = (existingTax / amountAfterDiscount) * 100;
+                        }
+
+                        // Recalculate tax based on tax_rate to ensure accuracy
+                        const tax = parseFloat((amountAfterDiscount * taxRate / 100).toFixed(2));
+                        const total = parseFloat((amountAfterDiscount + tax).toFixed(2));
 
                         return {
                             product_id: item.product_id,
@@ -522,6 +568,7 @@ export default {
                             quantity: parseInt(item.quantity, 10),
                             unit_price: parseFloat(item.unit_price || 0),
                             discount: discount,
+                            tax_rate: taxRate,
                             tax: tax,
                             total: total,
                         };
@@ -600,14 +647,16 @@ export default {
 
             this.saving = true;
             try {
+                // Calculate item totals for fallback
+                const itemsDiscount = this.cartItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+                const itemsTax = this.cartItems.reduce((sum, item) => sum + (item.tax || 0), 0);
+
                 const payload = {
                     customer_id: Number(this.form.customer_id),
                     warehouse_id: Number(this.form.warehouse_id),
                     invoice_date: this.form.invoice_date,
                     due_date: this.form.due_date || null,
                     paid_amount: parseFloat(this.form.paid_amount) || 0,
-                    discount_amount: parseFloat(this.form.discount_amount) || 0,
-                    tax_amount: parseFloat(this.form.tax_amount) || 0,
                     shipping_cost: parseFloat(this.form.shipping_cost) || 0,
                     notes: this.form.notes || '',
                     payment_method: this.paymentMethod || 'cash',
@@ -620,6 +669,22 @@ export default {
                         notes: item.notes || '',
                     })),
                 };
+
+                // Backend logic: if discount_amount/tax_amount not provided, it calculates from items
+                // Only send these if they differ from item totals (user has overridden)
+                const discountAmount = parseFloat(this.form.discount_amount) || 0;
+                if (Math.abs(discountAmount - itemsDiscount) > 0.01) {
+                    // User has set a different value, send it
+                    payload.discount_amount = discountAmount;
+                }
+                // Otherwise, don't send it - backend will calculate from items
+
+                const taxAmount = parseFloat(this.form.tax_amount) || 0;
+                if (Math.abs(taxAmount - itemsTax) > 0.01) {
+                    // User has set a different value, send it
+                    payload.tax_amount = taxAmount;
+                }
+                // Otherwise, don't send it - backend will calculate from items
 
                 // Add status if provided (for draft) - ensure it's a string
                 if (status && typeof status === 'string') {
