@@ -29,7 +29,12 @@
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-text-field v-model="form.barcode" label="Barcode" density="compact" variant="outlined"
-                                hide-details />
+                                hide-details>
+                                <template #append-inner>
+                                    <v-btn icon="mdi-refresh" size="x-small" variant="text" @click="generateBarcode"
+                                        :title="'Generate Barcode'" />
+                                </template>
+                            </v-text-field>
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-text-field v-model="form.brand" label="Brand" density="compact" variant="outlined"
@@ -170,6 +175,31 @@ export default {
                 sku = `${prefix}-${random}`;
             }
             this.form.sku = sku;
+        },
+        generateBarcode() {
+            // Generate numeric barcode (typically 8-13 digits)
+            // Use SKU if available, otherwise generate from product name or random
+            let barcode = '';
+            if (this.form.sku && this.form.sku.trim()) {
+                // Convert SKU to numeric barcode (remove non-numeric, pad to 12 digits)
+                const numeric = this.form.sku.replace(/\D/g, '');
+                if (numeric.length > 0) {
+                    barcode = numeric.padEnd(12, '0').substring(0, 12);
+                } else {
+                    barcode = Date.now().toString().slice(-12);
+                }
+            } else if (this.form.name && this.form.name.trim()) {
+                // Generate from product name hash
+                const nameHash = this.form.name.split('').reduce((acc, char) => {
+                    return acc + char.charCodeAt(0);
+                }, 0);
+                barcode = nameHash.toString().padEnd(12, '0').substring(0, 12);
+            } else {
+                // Generate random 12-digit barcode
+                const random = Math.floor(Math.random() * 1000000000000);
+                barcode = random.toString().padStart(12, '0');
+            }
+            this.form.barcode = barcode;
         },
         close() {
             this.$emit('update:modelValue', false);
