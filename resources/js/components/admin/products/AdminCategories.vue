@@ -42,22 +42,37 @@
                     <thead>
                         <tr>
                             <th class="sortable" @click="onSort('name')">
-                                <div class="d-flex align-center">
-                                    Name
-                                    <v-icon :icon="getSortIcon('name')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Name</span>
+                                    <v-icon v-if="sortBy === 'name'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th class="sortable" @click="onSort('slug')">
-                                <div class="d-flex align-center">
-                                    Slug
-                                    <v-icon :icon="getSortIcon('slug')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Slug</span>
+                                    <v-icon v-if="sortBy === 'slug'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Image</th>
                             <th class="sortable" @click="onSort('order')">
-                                <div class="d-flex align-center">
-                                    Order
-                                    <v-icon :icon="getSortIcon('order')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Order</span>
+                                    <v-icon v-if="sortBy === 'order'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Status</th>
@@ -475,6 +490,15 @@ export default {
             this.handleSort(field);
             this.loadCategories();
         },
+        isSortingBy(field) {
+            return this.sortBy === field;
+        },
+        getSortDirection(field) {
+            if (this.sortBy === field) {
+                return this.sortDirection;
+            }
+            return null;
+        },
         normalizeImageInput(imageValue) {
             return normalizeUploadPath(imageValue);
         },
@@ -488,5 +512,87 @@ export default {
 <style scoped>
 .gap-2 {
     gap: 8px;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.sort-icon {
+    flex-shrink: 0;
+    transition: opacity 0.2s, color 0.2s;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+}
+
+.sort-icon.active {
+    opacity: 1 !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    visibility: visible !important;
+}
+
+.sort-icon.active :deep(svg),
+.sort-icon.active :deep(path) {
+    fill: currentColor !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    opacity: 1 !important;
+}
+
+.sort-icon.inactive {
+    opacity: 0.7 !important;
+    color: #424242 !important;
+    visibility: visible !important;
+}
+
+.sort-icon.inactive :deep(svg),
+.sort-icon.inactive :deep(path) {
+    fill: #424242 !important;
+    color: #424242 !important;
+    opacity: 0.7 !important;
+}
+
+.sortable:hover .sort-icon.inactive {
+    opacity: 1 !important;
+    color: #212121 !important;
+}
+
+.sortable:hover .sort-icon.inactive :deep(svg),
+.sortable:hover .sort-icon.inactive :deep(path) {
+    fill: #212121 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure icons are visible on table header */
+:deep(.v-table thead th) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable:hover) {
+    background-color: rgba(0, 0, 0, 0.04);
 }
 </style>

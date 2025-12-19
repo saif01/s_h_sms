@@ -186,6 +186,13 @@ npm run build
   - Product Image (optional)
   - Status (Active/Inactive)
   - Description field
+- **Stock Integration**: ✅ **Enhanced with stock and warehouse information**:
+  - View total stock quantity across all warehouses
+  - Stock breakdown by warehouse in product dialog
+  - Stock quantities, average costs, and total values per warehouse
+  - Direct stock adjustment from product dialog
+  - Color-coded stock status indicators
+  - Warehouse filtering in product list
 - **Category Management**: Hierarchical categories with icons and images
 - **Unit Management**: Define units of measurement (kg, pcs, ltr, box, etc.)
 - **Bulk Operations**: Excel/CSV import support (placeholder ready)
@@ -195,8 +202,11 @@ npm run build
 - **Stock Tracking**: Real-time stock levels per warehouse
 - **Stock Ledger**: Detailed stock in/out transaction history
 - **Low Stock Alerts**: Automatic alerts when stock falls below minimum level
-- **Stock Adjustments**: Manual corrections for damage, loss, or discrepancies
-- **Stock Valuation**: Calculate total stock value (optional)
+- **Stock Adjustments**: ✅ **Direct stock adjustment from product dialog** - Manual corrections for damage, loss, or discrepancies with three adjustment types:
+  - Set Quantity: Set exact stock quantity
+  - Add Stock: Add to existing quantity
+  - Subtract Stock: Subtract from existing quantity
+- **Stock Valuation**: Calculate total stock value with average cost tracking
 - **Multi-Warehouse Support**: Manage inventory across multiple locations
 - **Warehouse Management**: Complete warehouse CRUD with:
   - Warehouse name, code, and location
@@ -204,6 +214,12 @@ npm run build
   - Full address details
   - Manager assignment
   - Active/Inactive status
+- **Product-Stock Integration**: ✅ **Stock information displayed directly in product management**:
+  - View stock quantities per warehouse in product dialog
+  - Color-coded stock status (red: out of stock, yellow: low stock, green: sufficient)
+  - Stock breakdown by warehouse with average cost and total value
+  - Filter products by warehouse
+  - Real-time stock updates after adjustments
 
 #### D) Supplier & Purchase Management ✅
 - **Supplier Management**: Complete supplier CRUD with:
@@ -484,13 +500,18 @@ All admin endpoints require authentication via Bearer token and appropriate perm
 - `DELETE /api/v1/purchases/{id}` - Delete purchase (requires `delete-purchases`)
 
 **Product Management:**
-- `GET /api/v1/products` - List products with search and filtering (requires `view-products`)
+- `GET /api/v1/products` - List products with search, filtering, and warehouse filtering (requires `view-products`)
+  - Includes stock quantities and warehouse breakdown in response
+  - Filter by `warehouse_id` to show products in specific warehouse
 - `POST /api/v1/products` - Create product (requires `manage-products`)
-- `GET /api/v1/products/{id}` - Get product details (requires `view-products`)
+- `GET /api/v1/products/{id}` - Get product details with stock information (requires `view-products`)
+  - Includes `stock_by_warehouse` array with warehouse details
 - `PUT /api/v1/products/{id}` - Update product (requires `manage-products`)
+  - Returns updated product with stock information
 - `DELETE /api/v1/products/{id}` - Delete product (requires `manage-products`)
 - `GET /api/v1/products/categories` - Get categories for dropdown
 - `GET /api/v1/products/units` - Get units for dropdown
+- `GET /api/v1/products/warehouses` - Get warehouses for dropdown (requires `view-products`)
 
 **Category Management:**
 - `GET /api/v1/categories` - List categories (requires `manage-categories`)
@@ -513,7 +534,14 @@ All admin endpoints require authentication via Bearer token and appropriate perm
 - `DELETE /api/v1/warehouses/{id}` - Delete warehouse (requires `manage-warehouses`)
 
 **Stock Management:**
-- `GET /api/v1/stocks` - List stock levels (requires `view-stock-ledger`)
+- `GET /api/v1/stocks` - List stock levels with filtering (requires `view-stock-ledger`)
+  - Filter by `product_id` or `warehouse_id`
+  - Search by product name or SKU
+- `POST /api/v1/stocks` - ✅ **Create or update stock** (requires `view-stock-ledger`)
+  - Direct stock adjustment with three types: `set`, `add`, `subtract`
+  - Automatic cost calculation using weighted average
+  - Creates stock ledger entry for audit trail
+  - Request body: `product_id`, `warehouse_id`, `quantity`, `adjustment_type`, `unit_cost` (optional), `notes` (optional)
 - `GET /api/v1/stocks/{id}` - Get stock details (requires `view-stock-ledger`)
 - `GET /api/v1/stock-ledger` - List stock transactions (requires `view-stock-ledger`)
 - `GET /api/v1/stock-ledger/{id}` - Get ledger entry details (requires `view-stock-ledger`)
@@ -694,10 +722,17 @@ public/
 - Invoice printing templates
 - Sales/Purchase return processing
 - Barcode generation and printing
-- Stock adjustment UI
 - Multi-language support (Bangla/English)
 - Automated backup system
 - Advanced audit trail
+
+### Recently Implemented Features ✅
+- **Stock Adjustment UI**: Direct stock adjustment from product dialog with warehouse selection
+- **Product-Stock Integration**: Stock information displayed in product management interface
+- **Warehouse Filtering**: Filter products by warehouse in product list
+- **Stock Status Indicators**: Color-coded stock status (out of stock, low stock, sufficient)
+- **Stock Breakdown View**: Detailed stock information per warehouse in product dialog
+- **Real-time Stock Updates**: Automatic stock refresh after adjustments
 
 ## 🛠️ Development
 

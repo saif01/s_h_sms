@@ -55,14 +55,79 @@
                 <v-table v-else>
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>SKU</th>
+                            <th class="sortable" @click="sortBy('name')">
+                                <div class="sortable-header">
+                                    <span>Name</span>
+                                    <v-icon v-if="isSortingBy('name')" size="18" class="sort-icon active">
+                                        {{ getSortDirection('name') === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="sortable" @click="sortBy('sku')">
+                                <div class="sortable-header">
+                                    <span>SKU</span>
+                                    <v-icon v-if="isSortingBy('sku')" size="18" class="sort-icon active">
+                                        {{ getSortDirection('sku') === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                             <th>Category</th>
-                            <th class="text-end">Purchase</th>
-                            <th class="text-end">Sale</th>
+                            <th class="text-end sortable" @click="sortBy('purchase_price')">
+                                <div class="sortable-header justify-end">
+                                    <span>Purchase</span>
+                                    <v-icon v-if="isSortingBy('purchase_price')" size="18" class="sort-icon active">
+                                        {{ getSortDirection('purchase_price') === 'asc' ? 'mdi-arrow-up' :
+                                            'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="text-end sortable" @click="sortBy('sale_price')">
+                                <div class="sortable-header justify-end">
+                                    <span>Sale</span>
+                                    <v-icon v-if="isSortingBy('sale_price')" size="18" class="sort-icon active">
+                                        {{ getSortDirection('sale_price') === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down'
+                                        }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                             <th class="text-end">Total Stock</th>
-                            <th class="text-end">Min Stock</th>
-                            <th>Status</th>
+                            <th class="text-end sortable" @click="sortBy('minimum_stock_level')">
+                                <div class="sortable-header justify-end">
+                                    <span>Min Stock</span>
+                                    <v-icon v-if="isSortingBy('minimum_stock_level')" size="18"
+                                        class="sort-icon active">
+                                        {{ getSortDirection('minimum_stock_level') === 'asc' ? 'mdi-arrow-up' :
+                                            'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="sortable" @click="sortBy('is_active')">
+                                <div class="sortable-header">
+                                    <span>Status</span>
+                                    <v-icon v-if="isSortingBy('is_active')" size="18" class="sort-icon active">
+                                        {{ getSortDirection('is_active') === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down'
+                                        }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -140,10 +205,12 @@
 <script>
 import axios from '@/utils/axios.config';
 import ProductDialog from './dialogs/ProductDialog.vue';
+import { sortingMixin } from '@/composables/useSorting';
 
 export default {
     name: 'AdminProducts',
     components: { ProductDialog },
+    mixins: [sortingMixin],
     data() {
         return {
             products: [],
@@ -192,6 +259,7 @@ export default {
                 const params = {
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
+                    ...this.getSortParams(), // Use centralized sort params
                 };
                 if (this.search) params.search = this.search;
                 if (this.categoryFilter) params.category_id = this.categoryFilter;
@@ -211,6 +279,13 @@ export default {
             } finally {
                 this.loading = false;
             }
+        },
+        // sortBy method is provided by sortingMixin
+        // Override onSortChange to handle pagination reset
+        onSortChange() {
+            // Reset to first page when sorting changes
+            this.pagination.current_page = 1;
+            this.loadProducts();
         },
         openDialog(product) {
             this.editingProduct = product;
@@ -313,6 +388,94 @@ export default {
 
 .page-title {
     margin: 0;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Ensure icons are visible on table header */
+:deep(.v-table thead th) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable:hover) {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.sortable-header.justify-end {
+    justify-content: flex-end;
+}
+
+.sort-icon {
+    flex-shrink: 0;
+    transition: opacity 0.2s, color 0.2s;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+}
+
+.sort-icon.active {
+    opacity: 1 !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    visibility: visible !important;
+}
+
+/* Ensure active icon is visible on any background */
+.sort-icon.active :deep(svg),
+.sort-icon.active :deep(path) {
+    fill: currentColor !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    opacity: 1 !important;
+}
+
+.sort-icon.inactive {
+    opacity: 0.7 !important;
+    color: #424242 !important;
+    visibility: visible !important;
+}
+
+/* Ensure inactive icon is visible on table header background */
+.sort-icon.inactive :deep(svg),
+.sort-icon.inactive :deep(path) {
+    fill: #424242 !important;
+    color: #424242 !important;
+    opacity: 0.7 !important;
+}
+
+.sortable:hover .sort-icon.inactive {
+    opacity: 1 !important;
+    color: #212121 !important;
+}
+
+.sortable:hover .sort-icon.inactive :deep(svg),
+.sortable:hover .sort-icon.inactive :deep(path) {
+    fill: #212121 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
 }
 </style>
 
