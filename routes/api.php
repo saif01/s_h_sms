@@ -119,7 +119,7 @@ Route::prefix('v1')->group(function () {
         Route::get('stock-ledger', [StockLedgerController::class, 'index']);
         Route::get('stock-ledger/{stock_ledger}', [StockLedgerController::class, 'show']);
         Route::get('stock-ledger/warehouses', [StockLedgerController::class, 'warehouses']);
-        Route::apiResource('stocks', StockController::class)->only(['index', 'show']);
+        Route::apiResource('stocks', StockController::class)->only(['index', 'show', 'store']);
 
         // Purchases / Suppliers
         Route::apiResource('purchases', PurchaseController::class);
