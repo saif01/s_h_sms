@@ -117,7 +117,7 @@
                         <span v-if="sales.length > 0 && pagination.total > 0">
                             Showing <strong>{{ ((pagination.current_page - 1) * pagination.per_page) + 1 }}</strong> to
                             <strong>{{ Math.min(pagination.current_page * pagination.per_page, pagination.total)
-                                }}</strong> of
+                            }}</strong> of
                             <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             <span v-if="pagination.last_page > 1" class="ml-2">
                                 (Page {{ pagination.current_page }} of {{ pagination.last_page }})
@@ -153,6 +153,7 @@ import ViewSaleDialog from './dialogs/ViewSaleDialog.vue';
 import DatePicker from '@/components/common/DatePicker.vue';
 import adminPaginationMixin from '@/mixins/adminPaginationMixin';
 import { formatDateDDMMYYYY } from '@/utils/formatters';
+import InvoicePrint from './InvoicePrint.js';
 
 export default {
     name: 'AdminSales',
@@ -272,9 +273,9 @@ export default {
             }
         },
         printInvoice(sale) {
-            // TODO: Implement invoice printing
-            console.log('Print invoice:', sale.invoice_number);
-            this.showInfo('Print feature coming soon');
+            InvoicePrint.printInvoice(sale, (errorMessage) => {
+                this.showError(errorMessage);
+            });
         },
         handleSaved() {
             this.fetchSales();
