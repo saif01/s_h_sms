@@ -19,124 +19,146 @@
                     </v-alert>
                 </div>
                 <div v-else>
-                    <!-- Product Image -->
-                    <div v-if="product.image" class="text-center mb-3">
-                        <v-img :src="product.image" max-width="200" max-height="200" class="mx-auto"
-                            style="border-radius: 8px;" cover></v-img>
-                    </div>
-
                     <!-- Basic Information Section -->
-                    <v-divider class="my-3" />
-                    <div class="text-subtitle-2 font-weight-medium mb-2">Basic Information</div>
+                    <div class="text-subtitle-2 font-weight-medium mb-2">Product Information</div>
                     <v-card variant="outlined" class="mb-2">
                         <v-card-text class="pa-2">
                             <v-row dense class="ma-0">
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Product Name</div>
-                                        <div class="text-body-2 font-weight-medium">{{ product.name || '-' }}</div>
+                                <v-col cols="12" sm="3" class="pa-2" v-if="product.image">
+                                    <div class="text-center">
+                                        <v-img :src="product.image" max-width="120" max-height="120" class="mx-auto"
+                                            style="border-radius: 8px;" cover></v-img>
                                     </div>
                                 </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Status</div>
-                                        <v-chip size="small" :color="product.is_active ? 'success' : 'error'"
-                                            variant="tonal">
-                                            {{ product.is_active ? 'Active' : 'Inactive' }}
-                                        </v-chip>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">SKU</div>
-                                        <div class="text-body-2">{{ product.sku || '-' }}</div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Barcode</div>
-                                        <div class="text-body-2">{{ product.barcode || '-' }}</div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Brand</div>
-                                        <div class="text-body-2">{{ product.brand || '-' }}</div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Category</div>
-                                        <div class="text-body-2">{{ product.category?.name || '-' }}</div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Unit</div>
-                                        <div class="text-body-2">{{ product.unit?.name || '-' }}</div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Description</div>
-                                        <div class="text-body-2">{{ product.description || '-' }}</div>
-                                    </div>
+                                <v-col :cols="product.image ? 12 : 12" :sm="product.image ? 9 : 12" class="pa-2">
+                                    <v-row dense class="ma-0">
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">ID:</span>
+                                                <span class="text-body-2 font-weight-medium ml-1">{{ product.id || '-'
+                                                }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Status:</span>
+                                                <v-chip size="x-small" :color="product.is_active ? 'success' : 'error'"
+                                                    variant="tonal" class="ml-1">
+                                                    {{ product.is_active ? 'Active' : 'Inactive' }}
+                                                </v-chip>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">SKU:</span>
+                                                <span class="text-body-2 ml-1">{{ product.sku || '-' }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Barcode:</span>
+                                                <span class="text-body-2 ml-1">{{ product.barcode || '-' }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Brand:</span>
+                                                <span class="text-body-2 ml-1">{{ product.brand || '-' }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Category:</span>
+                                                <span class="text-body-2 ml-1">{{ product.category?.name || '-'
+                                                }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" sm="6" md="4" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Unit:</span>
+                                                <span class="text-body-2 ml-1">{{ product.unit?.name || '-' }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" class="pa-2">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Name:</span>
+                                                <span class="text-body-2 font-weight-medium ml-1">{{ product.name || '-'
+                                                }}</span>
+                                            </div>
+                                        </v-col>
+                                        <v-col cols="12" class="pa-2" v-if="product.description">
+                                            <div class="info-item-compact">
+                                                <span class="text-caption text-grey">Description:</span>
+                                                <span class="text-body-2 ml-1">{{ product.description }}</span>
+                                            </div>
+                                        </v-col>
+                                    </v-row>
                                 </v-col>
                             </v-row>
                         </v-card-text>
                     </v-card>
 
-                    <!-- Pricing Information Section -->
-                    <v-divider class="my-3" />
-                    <div class="text-subtitle-2 font-weight-medium mb-2">Pricing Information</div>
+                    <!-- Pricing & Stock Information Section -->
+                    <v-divider class="my-2" />
+                    <div class="text-subtitle-2 font-weight-medium mb-2">Pricing & Stock</div>
                     <v-card variant="outlined" class="mb-2">
                         <v-card-text class="pa-2">
                             <v-row dense class="ma-0">
-                                <v-col cols="12" sm="4" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Purchase Price</div>
-                                        <div class="text-body-2 font-weight-medium">
-                                            ৳{{ parseFloat(product.purchase_price || 0).toFixed(2) }}
-                                        </div>
+                                <v-col cols="6" sm="3" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Purchase:</span>
+                                        <span class="text-body-2 font-weight-medium ml-1">৳{{
+                                            parseFloat(product.purchase_price || 0).toFixed(2) }}</span>
                                     </div>
                                 </v-col>
-                                <v-col cols="12" sm="4" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Sale Price</div>
-                                        <div class="text-body-2 font-weight-medium">
-                                            ৳{{ parseFloat(product.sale_price || 0).toFixed(2) }}
-                                        </div>
+                                <v-col cols="6" sm="3" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Sale:</span>
+                                        <span class="text-body-2 font-weight-medium ml-1">৳{{
+                                            parseFloat(product.sale_price || 0).toFixed(2) }}</span>
                                     </div>
                                 </v-col>
-                                <v-col cols="12" sm="4" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">VAT/Tax Rate</div>
-                                        <div class="text-body-2">{{ parseFloat(product.tax_rate || 0).toFixed(2) }}%</div>
+                                <v-col cols="6" sm="2" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Tax:</span>
+                                        <span class="text-body-2 ml-1">{{ parseFloat(product.tax_rate || 0).toFixed(1)
+                                        }}%</span>
                                     </div>
                                 </v-col>
-                            </v-row>
-                        </v-card-text>
-                    </v-card>
-
-                    <!-- Stock Information Section -->
-                    <v-divider class="my-3" />
-                    <div class="text-subtitle-2 font-weight-medium mb-2">Stock Information</div>
-                    <v-card variant="outlined" class="mb-2">
-                        <v-card-text class="pa-2">
-                            <v-row dense class="ma-0">
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Total Stock</div>
-                                        <v-chip size="small" :color="getStockStatusColor(totalStock)"
-                                            variant="tonal" class="font-weight-medium">
+                                <v-col cols="6" sm="2" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Profit:</span>
+                                        <span class="text-body-2 font-weight-medium text-success ml-1">৳{{
+                                            profitPerUnit.toFixed(2) }}</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="6" sm="2" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Margin:</span>
+                                        <span class="text-body-2 font-weight-medium text-success ml-1">{{
+                                            profitMargin.toFixed(1) }}%</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="6" sm="4" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Total Stock:</span>
+                                        <v-chip size="x-small" :color="getStockStatusColor(totalStock)" variant="tonal"
+                                            class="ml-1 font-weight-medium">
                                             {{ totalStock }}
                                         </v-chip>
                                     </div>
                                 </v-col>
-                                <v-col cols="12" sm="6" class="pa-2">
-                                    <div class="info-item">
-                                        <div class="text-caption text-grey mb-1">Minimum Stock Alert</div>
-                                        <div class="text-body-2">{{ product.minimum_stock_level || 0 }}</div>
+                                <v-col cols="6" sm="4" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Min Stock:</span>
+                                        <span class="text-body-2 ml-1">{{ product.minimum_stock_level || 0 }}</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" sm="4" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Created:</span>
+                                        <span class="text-body-2 ml-1">{{ formatDateShort(product.created_at) || '-'
+                                        }}</span>
                                     </div>
                                 </v-col>
                             </v-row>
@@ -144,45 +166,41 @@
                     </v-card>
 
                     <!-- Stock by Warehouse -->
-                    <v-divider class="my-3" />
-                    <div class="text-subtitle-2 font-weight-medium mb-2">Stock by Warehouse</div>
-                    <v-card variant="outlined" class="mb-2">
+                    <v-divider class="my-2"
+                        v-if="product.stock_by_warehouse && product.stock_by_warehouse.length > 0" />
+                    <div v-if="product.stock_by_warehouse && product.stock_by_warehouse.length > 0"
+                        class="text-subtitle-2 font-weight-medium mb-2">Stock by Warehouse</div>
+                    <v-card v-if="product.stock_by_warehouse && product.stock_by_warehouse.length > 0"
+                        variant="outlined" class="mb-2">
                         <v-card-text class="pa-2">
-                            <div v-if="product.stock_by_warehouse && product.stock_by_warehouse.length > 0">
-                                <v-table density="compact">
-                                    <thead>
-                                        <tr>
-                                            <th>Warehouse</th>
-                                            <th class="text-end">Quantity</th>
-                                            <th class="text-end">Avg Cost</th>
-                                            <th class="text-end">Total Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="stock in product.stock_by_warehouse" :key="stock.warehouse_id">
-                                            <td>
-                                                <span class="font-weight-medium">{{ stock.warehouse_name }}</span>
-                                                <span v-if="stock.warehouse_code" class="text-caption text-grey ml-1">
-                                                    ({{ stock.warehouse_code }})
-                                                </span>
-                                            </td>
-                                            <td class="text-end">
-                                                <v-chip size="small" :color="getStockStatusColor(stock.quantity)"
-                                                    variant="tonal">
-                                                    {{ stock.quantity || 0 }}
-                                                </v-chip>
-                                            </td>
-                                            <td class="text-end">৳{{ parseFloat(stock.average_cost || 0).toFixed(2) }}
-                                            </td>
-                                            <td class="text-end">৳{{ parseFloat(stock.total_value || 0).toFixed(2) }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </v-table>
-                            </div>
-                            <div v-else class="text-center text-grey py-2">
-                                <span class="text-caption">No stock information available</span>
-                            </div>
+                            <v-table density="compact">
+                                <thead>
+                                    <tr>
+                                        <th>Warehouse</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Avg Cost</th>
+                                        <th class="text-end">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="stock in product.stock_by_warehouse" :key="stock.warehouse_id">
+                                        <td>
+                                            <span class="font-weight-medium">{{ stock.warehouse_name }}</span>
+                                            <span v-if="stock.warehouse_code" class="text-caption text-grey ml-1">
+                                                ({{ stock.warehouse_code }})
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <v-chip size="x-small" :color="getStockStatusColor(stock.quantity)"
+                                                variant="tonal">
+                                                {{ stock.quantity || 0 }}
+                                            </v-chip>
+                                        </td>
+                                        <td class="text-end">৳{{ parseFloat(stock.average_cost || 0).toFixed(2) }}</td>
+                                        <td class="text-end">৳{{ parseFloat(stock.total_value || 0).toFixed(2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </v-table>
                         </v-card-text>
                     </v-card>
                 </div>
@@ -220,6 +238,17 @@ export default {
                 return 0;
             }
             return this.product.stock_by_warehouse.reduce((sum, stock) => sum + (parseFloat(stock.quantity) || 0), 0);
+        },
+        profitPerUnit() {
+            const purchasePrice = parseFloat(this.product?.purchase_price || 0);
+            const salePrice = parseFloat(this.product?.sale_price || 0);
+            return salePrice - purchasePrice;
+        },
+        profitMargin() {
+            const purchasePrice = parseFloat(this.product?.purchase_price || 0);
+            const salePrice = parseFloat(this.product?.sale_price || 0);
+            if (salePrice === 0) return 0;
+            return ((salePrice - purchasePrice) / salePrice) * 100;
         },
     },
     watch: {
@@ -262,6 +291,15 @@ export default {
             if (quantity <= this.product.minimum_stock_level) return 'warning';
             return 'success';
         },
+        formatDateShort(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            });
+        },
         close() {
             this.$emit('update:modelValue', false);
         },
@@ -278,11 +316,9 @@ export default {
     background-color: rgba(0, 0, 0, 0.02);
 }
 
-.info-item {
-    min-height: 40px;
+.info-item-compact {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    min-height: 32px;
 }
 </style>
-
