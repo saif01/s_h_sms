@@ -20,7 +20,14 @@ export default {
             // Pagination state
             currentPage: 1,
             perPage: 10,
-            perPageOptions: [10, 25, 50, 100, 500],
+            perPageOptions: [
+                { title: '10', value: 10, description: 'Quick view' },
+                { title: '25', value: 25, description: 'Standard' },
+                { title: '50', value: 50, description: 'Comfortable' },
+                { title: '100', value: 100, description: 'Extended' },
+                { title: '500', value: 500, description: 'Large dataset' },
+                { title: 'Show All', value: 'all', description: 'All records' }
+            ],
             pagination: {
                 current_page: 1,
                 last_page: 1,
@@ -116,14 +123,14 @@ export default {
                     const [year, month, day] = date.split('-');
                     return `${day}/${month}/${year}`;
                 }
-                
+
                 const d = new Date(date);
                 if (isNaN(d.getTime())) return '';
-                
+
                 const day = String(d.getDate()).padStart(2, '0');
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const year = d.getFullYear();
-                
+
                 return `${day}/${month}/${year}`;
             } catch (error) {
                 return date;
@@ -269,7 +276,7 @@ export default {
             // Check if field exists in filters object
             if (this.filters && Object.prototype.hasOwnProperty.call(this.filters, fieldName)) {
                 this.filters[fieldName] = fieldValue;
-            } 
+            }
             // Check if field exists at root level
             else if (Object.prototype.hasOwnProperty.call(this, fieldName)) {
                 this[fieldName] = fieldValue;

@@ -11,17 +11,12 @@
         <v-card class="mb-4">
             <v-card-text>
                 <v-row>
-                    <v-col cols="12" md="3">
-                        <v-select v-model="perPage" :items="perPageOptions" label="Items per page"
-                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
-                            @update:model-value="onPerPageChange"></v-select>
-                    </v-col>
-                    <v-col cols="12" md="3">
+                    <v-col cols="12" md="4">
                         <v-select v-model="activeFilter" :items="activeOptions" label="Filter by Status"
                             variant="outlined" density="compact" clearable
                             @update:model-value="loadCategories"></v-select>
                     </v-col>
-                    <v-col cols="12" md="6">
+                    <v-col cols="12" md="8">
                         <v-text-field v-model="search" label="Search by name, slug" prepend-inner-icon="mdi-magnify"
                             variant="outlined" density="compact" clearable @input="loadCategories"></v-text-field>
                     </v-col>
@@ -142,18 +137,63 @@
                 <!-- Pagination -->
                 <div
                     class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <!-- Left: Records Info -->
                     <div class="text-caption text-grey">
                         <span v-if="categories.length > 0 && pagination.total > 0">
-                            Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                            <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
-                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
+                            <span v-if="perPage === 'all'">
+                                Showing <strong>all {{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
+                            <span v-else>
+                                Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                                <strong>{{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
                         </span>
                         <span v-else>No records found</span>
                     </div>
-                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
-                        <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
-                            density="comfortable" @update:model-value="loadCategories">
-                        </v-pagination>
+
+                    <!-- Right: Items Per Page and Pagination -->
+                    <div class="d-flex align-center gap-3">
+                        <v-menu location="top">
+                            <template v-slot:activator="{ props }">
+                                <v-btn v-bind="props" variant="outlined" density="compact"
+                                    prepend-icon="mdi-format-list-numbered" class="items-per-page-btn">
+                                    <span class="mr-2">Show: <strong>{{ getPerPageLabel() }}</strong></span>
+                                    <v-icon size="small">mdi-chevron-up</v-icon>
+                                </v-btn>
+                            </template>
+                            <v-list class="items-per-page-menu">
+                                <v-list-subheader class="text-caption font-weight-medium">
+                                    <v-icon size="small" class="mr-1">mdi-view-list</v-icon>
+                                    Items per page
+                                </v-list-subheader>
+                                <template v-for="(option, index) in perPageOptions" :key="option.value">
+                                    <v-divider v-if="option.value === 'all'" class="my-2"></v-divider>
+                                    <v-list-item :value="option.value" :active="perPage === option.value"
+                                        @click="selectPerPage(option.value)" class="items-per-page-item">
+                                        <template v-slot:prepend>
+                                            <v-icon v-if="perPage === option.value" color="primary" size="small">
+                                                mdi-check-circle
+                                            </v-icon>
+                                            <v-icon v-else size="small" class="text-grey">
+                                                mdi-circle-outline
+                                            </v-icon>
+                                        </template>
+                                        <v-list-item-title>
+                                            <span class="font-weight-medium">{{ option.title }}</span>
+                                            <span v-if="option.description" class="text-caption text-grey ml-2">
+                                                {{ option.description }}
+                                            </span>
+                                        </v-list-item-title>
+                                    </v-list-item>
+                                </template>
+                            </v-list>
+                        </v-menu>
+                        <div v-if="pagination.last_page > 1 && perPage !== 'all'" class="d-flex align-center">
+                            <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
+                                density="comfortable" @update:model-value="loadCategories">
+                            </v-pagination>
+                        </div>
                     </div>
                 </div>
             </v-card-text>
@@ -289,6 +329,11 @@ export default {
             try {
                 this.loading = true;
                 const params = this.buildPaginationParams();
+
+                // Handle "Show All" option
+                if (this.perPage === 'all') {
+                    params.per_page = 999999; // Very large number to get all records
+                }
 
                 if (this.search) {
                     params.search = this.search;
@@ -486,6 +531,14 @@ export default {
             this.resetPagination();
             this.loadCategories();
         },
+        selectPerPage(value) {
+            this.perPage = value;
+            this.onPerPageChange();
+        },
+        getPerPageLabel() {
+            const option = this.perPageOptions.find(opt => opt.value === this.perPage);
+            return option ? option.title : '10';
+        },
         onSort(field) {
             this.handleSort(field);
             this.loadCategories();
@@ -600,5 +653,82 @@ export default {
 
 :deep(.v-table thead th.sortable:hover) {
     background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Items Per Page Dropdown Styles */
+.items-per-page-btn {
+    min-width: 160px;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+    height: 40px;
+    /* Match pagination height */
+    display: flex;
+    align-items: center;
+}
+
+.items-per-page-btn :deep(.v-btn__prepend) {
+    margin-inline-end: 8px;
+}
+
+/* Ensure pagination and items per page are aligned */
+.d-flex.align-center {
+    align-items: center;
+}
+
+.d-flex.align-center :deep(.v-pagination) {
+    display: flex;
+    align-items: center;
+}
+
+.items-per-page-menu {
+    min-width: 220px;
+    padding: 8px 0;
+}
+
+.items-per-page-menu :deep(.v-list-subheader) {
+    padding: 12px 16px 8px;
+    opacity: 0.8;
+    height: auto;
+    min-height: 40px;
+}
+
+.items-per-page-item {
+    padding: 8px 16px;
+    min-height: 44px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.items-per-page-item:hover {
+    background-color: rgba(var(--v-theme-primary), 0.08);
+}
+
+.items-per-page-item :deep(.v-list-item__prepend) {
+    margin-inline-end: 12px;
+}
+
+.items-per-page-item :deep(.v-list-item-title) {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.items-per-page-item.v-list-item--active {
+    background-color: rgba(var(--v-theme-primary), 0.12);
+}
+
+.items-per-page-item.v-list-item--active :deep(.v-list-item-title) {
+    color: rgb(var(--v-theme-primary));
+    font-weight: 500;
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+    .items-per-page-btn {
+        width: 100%;
+        max-width: 100%;
+    }
 }
 </style>
