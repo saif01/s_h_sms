@@ -18,7 +18,11 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             DemoDataSeeder::class,
             CurrentProjectSeeder::class,
+            PurchaseSeeder::class,
             ProductSaleSeeder::class,
+            StockLedgerSeeder::class,
+            PaymentSeeder::class,
+            LoginLogSeeder::class,
         ]);
     }
 }
