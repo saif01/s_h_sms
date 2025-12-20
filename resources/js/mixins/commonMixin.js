@@ -1,40 +1,21 @@
 /**
  * Common Mixin
  * 
- * Provides common pagination functionality, utilities, and methods
- * for all admin pages to reduce code duplication.
+ * Provides common utilities and methods for all admin pages to reduce code duplication.
  * 
  * This mixin includes:
- * - Pagination state management (currentPage, perPage, pagination object)
  * - Search functionality
  * - Loading/saving states
  * - Success/Error notification methods
  * - Date formatting utilities
  * - Authentication helpers
  * - API error handling
+ * - Sorting functionality
  * - Common helper methods
  */
 export default {
     data() {
         return {
-            // Pagination state
-            currentPage: 1,
-            perPage: 10,
-            perPageOptions: [
-                { title: '10', value: 10, description: 'Quick view' },
-                { title: '25', value: 25, description: 'Standard' },
-                { title: '50', value: 50, description: 'Comfortable' },
-                { title: '100', value: 100, description: 'Extended' },
-                { title: '500', value: 500, description: 'Large dataset' },
-                { title: 'Show All', value: 'all', description: 'All records' }
-            ],
-            pagination: {
-                current_page: 1,
-                last_page: 1,
-                per_page: 10,
-                total: 0
-            },
-
             // Common search state
             search: '',
 
@@ -49,17 +30,6 @@ export default {
     },
 
     methods: {
-        /**
-         * Handle per page change - resets to page 1 and reloads data
-         * Override loadData method in component to use this
-         */
-        onPerPageChange() {
-            this.currentPage = 1;
-            if (this.loadData) {
-                this.loadData();
-            }
-        },
-
         /**
          * Show success notification
          * @param {string} message - Success message to display
@@ -156,49 +126,6 @@ export default {
         },
 
         /**
-         * Build pagination params for API requests
-         * @param {Object} additionalParams - Additional parameters to include
-         * @returns {Object} Parameters object for API request
-         */
-        buildPaginationParams(additionalParams = {}) {
-            const params = {
-                page: this.currentPage,
-                per_page: this.perPage,
-                ...additionalParams
-            };
-
-            // Add sorting parameters if sortBy is set
-            if (this.sortBy) {
-                params.sort_by = this.sortBy;
-                params.sort_direction = this.sortDirection;
-            }
-
-            return params;
-        },
-
-        /**
-         * Update pagination state from API response
-         * @param {Object} responseData - Response data from API
-         */
-        updatePagination(responseData) {
-            if (responseData) {
-                this.pagination = {
-                    current_page: responseData.current_page || 1,
-                    last_page: responseData.last_page || 1,
-                    per_page: responseData.per_page || this.perPage,
-                    total: responseData.total || 0
-                };
-            }
-        },
-
-        /**
-         * Reset pagination to first page
-         */
-        resetPagination() {
-            this.currentPage = 1;
-        },
-
-        /**
          * Handle API error with user-friendly messages
          * @param {Error} error - Error object from axios
          * @param {string} defaultMessage - Default error message
@@ -242,8 +169,6 @@ export default {
                 this.sortBy = field;
                 this.sortDirection = 'asc';
             }
-            // Reset to first page when sorting changes
-            this.currentPage = 1;
         },
 
         /**

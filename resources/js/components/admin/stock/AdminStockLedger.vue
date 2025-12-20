@@ -9,11 +9,6 @@
             <v-card-text>
                 <v-row>
                     <v-col cols="12" md="3">
-                        <v-select v-model="perPage" :items="perPageOptions" label="Items per page"
-                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
-                            @update:model-value="onPerPageChange"></v-select>
-                    </v-col>
-                    <v-col cols="12" md="3">
                         <v-select v-model="productFilter" :items="productOptions" label="Filter by Product"
                             variant="outlined" density="compact" clearable @update:model-value="loadLedger"></v-select>
                     </v-col>
@@ -63,19 +58,29 @@
                     <thead>
                         <tr>
                             <th class="sortable" @click="onSort('transaction_date')">
-                                <div class="d-flex align-center">
-                                    Date
-                                    <v-icon :icon="getSortIcon('transaction_date')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Date</span>
+                                    <v-icon v-if="sortBy === 'transaction_date'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Product</th>
                             <th>Warehouse</th>
                             <th>Type</th>
                             <th>Reference</th>
-                            <th class="sortable" @click="onSort('quantity')">
-                                <div class="d-flex align-center">
-                                    Quantity
-                                    <v-icon :icon="getSortIcon('quantity')" size="small" class="ml-1"></v-icon>
+                            <th class="text-end sortable" @click="onSort('quantity')">
+                                <div class="sortable-header justify-end">
+                                    <span>Quantity</span>
+                                    <v-icon v-if="sortBy === 'quantity'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Unit Cost</th>
@@ -140,19 +145,25 @@
                 <!-- Pagination -->
                 <div
                     class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <!-- Left: Records Info -->
                     <div class="text-caption text-grey">
                         <span v-if="ledgers.length > 0 && pagination.total > 0">
-                            Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                            <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
-                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
+                            <span v-if="perPage === 'all'">
+                                Showing <strong>all {{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
+                            <span v-else>
+                                Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                                <strong>{{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
                         </span>
                         <span v-else>No records found</span>
                     </div>
-                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
-                        <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
-                            density="comfortable" @update:model-value="loadLedger">
-                        </v-pagination>
-                    </div>
+
+                    <!-- Right: Items Per Page and Pagination -->
+                    <PaginationControls v-model="currentPage" :pagination="pagination" :per-page-value="perPage"
+                        :per-page-options="perPageOptions" @update:per-page="onPerPageUpdate"
+                        @page-change="onPageChange" />
                 </div>
             </v-card-text>
         </v-card>
@@ -161,8 +172,12 @@
 
 <script>
 import commonMixin from '../../../mixins/commonMixin';
+import PaginationControls from '../../common/PaginationControls.vue';
 
 export default {
+    components: {
+        PaginationControls
+    },
     mixins: [commonMixin],
     data() {
         return {
@@ -200,6 +215,11 @@ export default {
             try {
                 this.loading = true;
                 const params = this.buildPaginationParams();
+
+                // Handle "Show All" option
+                if (this.perPage === 'all') {
+                    params.per_page = 999999; // Very large number to get all records
+                }
 
                 if (this.search) {
                     params.search = this.search;
@@ -282,6 +302,14 @@ export default {
                 maximumFractionDigits: 2
             }).format(value);
         },
+        onPerPageUpdate(value) {
+            this.perPage = value;
+            this.onPerPageChange();
+        },
+        onPageChange(page) {
+            this.currentPage = page;
+            this.loadLedger();
+        },
         onPerPageChange() {
             this.resetPagination();
             this.loadLedger();
@@ -297,6 +325,98 @@ export default {
 <style scoped>
 .gap-2 {
     gap: 8px;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.sortable-header.justify-end {
+    justify-content: flex-end;
+}
+
+.sort-icon {
+    flex-shrink: 0;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+    background-color: white;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.sort-icon.active {
+    opacity: 1 !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.active :deep(svg),
+.sort-icon.active :deep(path) {
+    fill: currentColor !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    opacity: 1 !important;
+}
+
+.sort-icon.inactive {
+    opacity: 0.7 !important;
+    color: #424242 !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.inactive :deep(svg),
+.sort-icon.inactive :deep(path) {
+    fill: #424242 !important;
+    color: #424242 !important;
+    opacity: 0.7 !important;
+}
+
+.sortable:hover .sort-icon.inactive {
+    opacity: 1 !important;
+    color: #212121 !important;
+    background-color: white !important;
+}
+
+.sortable:hover .sort-icon.inactive :deep(svg),
+.sortable:hover .sort-icon.inactive :deep(path) {
+    fill: #212121 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure icons are visible on table header */
+:deep(.v-table thead th) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable:hover) {
+    background-color: rgba(0, 0, 0, 0.04);
 }
 </style>
 
