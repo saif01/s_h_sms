@@ -153,49 +153,9 @@
                     </div>
 
                     <!-- Right: Items Per Page and Pagination -->
-                    <div class="d-flex align-center gap-3">
-                        <v-menu location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="outlined" density="compact"
-                                    prepend-icon="mdi-format-list-numbered" class="items-per-page-btn">
-                                    <span class="mr-2">Show: <strong>{{ getPerPageLabel() }}</strong></span>
-                                    <v-icon size="small">mdi-chevron-up</v-icon>
-                                </v-btn>
-                            </template>
-                            <v-list class="items-per-page-menu">
-                                <v-list-subheader class="text-caption font-weight-medium">
-                                    <v-icon size="small" class="mr-1">mdi-view-list</v-icon>
-                                    Items per page
-                                </v-list-subheader>
-                                <template v-for="(option, index) in perPageOptions" :key="option.value">
-                                    <v-divider v-if="option.value === 'all'" class="my-2"></v-divider>
-                                    <v-list-item :value="option.value" :active="perPage === option.value"
-                                        @click="selectPerPage(option.value)" class="items-per-page-item">
-                                        <template v-slot:prepend>
-                                            <v-icon v-if="perPage === option.value" color="primary" size="small">
-                                                mdi-check-circle
-                                            </v-icon>
-                                            <v-icon v-else size="small" class="text-grey">
-                                                mdi-circle-outline
-                                            </v-icon>
-                                        </template>
-                                        <v-list-item-title>
-                                            <span class="font-weight-medium">{{ option.title }}</span>
-                                            <span v-if="option.description" class="text-caption text-grey ml-2">
-                                                {{ option.description }}
-                                            </span>
-                                        </v-list-item-title>
-                                    </v-list-item>
-                                </template>
-                            </v-list>
-                        </v-menu>
-                        <div v-if="pagination.last_page > 1 && perPage !== 'all'" class="pagination-wrapper">
-                            <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
-                                density="comfortable" @update:model-value="loadCategories" class="pagination-component"
-                                show-first-last-page first-icon="mdi-page-first" last-icon="mdi-page-last">
-                            </v-pagination>
-                        </div>
-                    </div>
+                    <PaginationControls v-model="currentPage" :pagination="pagination" :per-page-value="perPage"
+                        :per-page-options="perPageOptions" @update:per-page="onPerPageUpdate"
+                        @page-change="onPageChange" />
                 </div>
             </v-card-text>
         </v-card>
@@ -272,8 +232,12 @@
 <script>
 import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
 import { normalizeUploadPath, resolveUploadUrl } from '../../../utils/uploads';
+import PaginationControls from '../../common/PaginationControls.vue';
 
 export default {
+    components: {
+        PaginationControls
+    },
     mixins: [adminPaginationMixin],
     data() {
         return {
@@ -532,13 +496,13 @@ export default {
             this.resetPagination();
             this.loadCategories();
         },
-        selectPerPage(value) {
+        onPerPageUpdate(value) {
             this.perPage = value;
             this.onPerPageChange();
         },
-        getPerPageLabel() {
-            const option = this.perPageOptions.find(opt => opt.value === this.perPage);
-            return option ? option.title : '10';
+        onPageChange(page) {
+            this.currentPage = page;
+            this.loadCategories();
         },
         onSort(field) {
             this.handleSort(field);
@@ -654,130 +618,5 @@ export default {
 
 :deep(.v-table thead th.sortable:hover) {
     background-color: rgba(0, 0, 0, 0.04);
-}
-
-/* Items Per Page Dropdown Styles */
-.items-per-page-btn {
-    min-width: 160px;
-    text-transform: none;
-    letter-spacing: normal;
-    font-weight: 400;
-    height: 36px;
-    min-height: 36px;
-    /* Match pagination height for perfect alignment */
-    display: flex;
-    align-items: center;
-    padding-inline: 12px;
-}
-
-.items-per-page-btn :deep(.v-btn__prepend) {
-    margin-inline-end: 8px;
-}
-
-.items-per-page-btn :deep(.v-icon) {
-    font-size: 18px;
-}
-
-/* Ensure pagination and items per page are aligned */
-.d-flex.align-center {
-    align-items: center;
-}
-
-.d-flex.align-center :deep(.v-pagination) {
-    display: flex;
-    align-items: center;
-}
-
-/* Pagination Wrapper - Align first/last buttons with pagination prev/next */
-.pagination-wrapper {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: nowrap;
-}
-
-.pagination-wrapper :deep(.v-pagination) {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-/* Ensure all buttons in pagination wrapper have consistent styling */
-.pagination-wrapper :deep(.v-pagination .v-btn) {
-    min-width: 36px;
-    width: 36px;
-    height: 36px;
-}
-
-/* Match icon size in pagination buttons */
-.pagination-wrapper :deep(.v-pagination .v-btn .v-icon) {
-    font-size: 20px;
-}
-
-/* Hover effects to match pagination */
-.pagination-wrapper :deep(.v-pagination .v-btn:not(.v-btn--disabled):hover) {
-    background-color: rgba(var(--v-theme-primary), 0.08);
-}
-
-/* Active/selected state */
-.pagination-wrapper :deep(.v-pagination .v-btn--active) {
-    background-color: rgb(var(--v-theme-primary));
-    color: white;
-}
-
-/* Disabled state to match pagination */
-.pagination-wrapper :deep(.v-pagination .v-btn--disabled) {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.items-per-page-menu {
-    min-width: 220px;
-    padding: 8px 0;
-}
-
-.items-per-page-menu :deep(.v-list-subheader) {
-    padding: 12px 16px 8px;
-    opacity: 0.8;
-    height: auto;
-    min-height: 40px;
-}
-
-.items-per-page-item {
-    padding: 8px 16px;
-    min-height: 44px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.items-per-page-item:hover {
-    background-color: rgba(var(--v-theme-primary), 0.08);
-}
-
-.items-per-page-item :deep(.v-list-item__prepend) {
-    margin-inline-end: 12px;
-}
-
-.items-per-page-item :deep(.v-list-item-title) {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-.items-per-page-item.v-list-item--active {
-    background-color: rgba(var(--v-theme-primary), 0.12);
-}
-
-.items-per-page-item.v-list-item--active :deep(.v-list-item-title) {
-    color: rgb(var(--v-theme-primary));
-    font-weight: 500;
-}
-
-
-/* Responsive adjustments */
-@media (max-width: 960px) {
-    .items-per-page-btn {
-        width: 100%;
-        max-width: 100%;
-    }
 }
 </style>
