@@ -12,16 +12,11 @@
             <v-card-text>
                 <v-row>
                     <v-col cols="12" md="4">
-                        <v-select v-model="perPage" :items="perPageOptions" label="Items per page"
-                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
-                            @update:model-value="onPerPageChange"></v-select>
-                    </v-col>
-                    <v-col cols="12" md="4">
                         <v-select v-model="activeFilter" :items="activeOptions" label="Filter by Status"
                             prepend-inner-icon="mdi-filter" variant="outlined" density="compact" clearable
                             @update:model-value="loadRoles"></v-select>
                     </v-col>
-                    <v-col cols="12" md="4">
+                    <v-col cols="12" md="8">
                         <v-text-field v-model="search" label="Search roles" prepend-inner-icon="mdi-magnify"
                             variant="outlined" density="compact" clearable
                             @update:model-value="loadRoles"></v-text-field>
@@ -36,10 +31,6 @@
                 <span>Roles</span>
                 <span class="text-caption text-grey">
                     Total Records: <strong>{{ pagination.total || 0 }}</strong>
-                    <span v-if="roles.length > 0">
-                        | Showing {{ ((currentPage - 1) * perPage) + 1 }} to {{ Math.min(currentPage * perPage,
-                            pagination.total) }} of {{ pagination.total }}
-                    </span>
                 </span>
             </v-card-title>
             <v-card-text>
@@ -47,22 +38,37 @@
                     <thead>
                         <tr>
                             <th class="sortable" @click="onSort('name')">
-                                <div class="d-flex align-center">
-                                    Name
-                                    <v-icon :icon="getSortIcon('name')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Name</span>
+                                    <v-icon v-if="sortBy === 'name'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th class="sortable" @click="onSort('slug')">
-                                <div class="d-flex align-center">
-                                    Slug
-                                    <v-icon :icon="getSortIcon('slug')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Slug</span>
+                                    <v-icon v-if="sortBy === 'slug'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Permissions</th>
                             <th class="sortable" @click="onSort('is_active')">
-                                <div class="d-flex align-center">
-                                    Status
-                                    <v-icon :icon="getSortIcon('is_active')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Status</span>
+                                    <v-icon v-if="sortBy === 'is_active'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Type</th>
@@ -70,66 +76,87 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="role in roles" :key="role.id">
+                        <!-- Skeleton Loaders -->
+                        <tr v-if="loading" v-for="n in 5" :key="`skeleton-${n}`">
+                            <td><v-skeleton-loader type="text" width="150"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="120"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="80" height="24"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="80" height="24"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="70" height="24"></v-skeleton-loader></td>
                             <td>
-                                <div class="font-weight-medium">{{ role.name }}</div>
-                                <div class="text-caption text-grey">{{ role.description || 'No description' }}</div>
-                            </td>
-                            <td>
-                                <v-chip size="small" variant="outlined">{{ role.slug }}</v-chip>
-                            </td>
-                            <td>
-                                <v-chip size="small" color="primary" variant="text">
-                                    {{ role.permissions ? role.permissions.length : 0 }} permissions
-                                </v-chip>
-                            </td>
-                            <td>
-                                <v-chip :color="role.is_active ? 'success' : 'error'" size="small">
-                                    {{ role.is_active ? 'Active' : 'Inactive' }}
-                                </v-chip>
-                            </td>
-                            <td>
-                                <v-chip v-if="role.is_system" color="warning" size="small">
-                                    System
-                                </v-chip>
-                                <span v-else class="text-caption">Custom</span>
-                            </td>
-                            <td>
-                                <v-btn size="small" icon="mdi-pencil" @click="openDialog(role)" variant="text"
-                                    :disabled="role.is_system"></v-btn>
-                                <v-btn size="small" icon="mdi-shield-key" @click="openPermissionDialog(role)"
-                                    variant="text"></v-btn>
-                                <v-btn size="small" icon="mdi-delete" @click="deleteRole(role)" variant="text"
-                                    color="error" :disabled="role.is_system"></v-btn>
+                                <div class="d-flex">
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"></v-skeleton-loader>
+                                </div>
                             </td>
                         </tr>
-                        <tr v-if="roles.length === 0">
-                            <td colspan="6" class="text-center py-4">No roles found</td>
-                        </tr>
+                        <!-- Actual Role Data -->
+                        <template v-else>
+                            <tr v-for="role in roles" :key="role.id">
+                                <td>
+                                    <div class="font-weight-medium">{{ role.name }}</div>
+                                    <div class="text-caption text-grey">{{ role.description || 'No description' }}</div>
+                                </td>
+                                <td>
+                                    <v-chip size="small" variant="outlined">{{ role.slug }}</v-chip>
+                                </td>
+                                <td>
+                                    <v-chip size="small" color="primary" variant="text">
+                                        {{ role.permissions ? role.permissions.length : 0 }} permissions
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <v-chip :color="role.is_active ? 'success' : 'error'" size="small">
+                                        {{ role.is_active ? 'Active' : 'Inactive' }}
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <v-chip v-if="role.is_system" color="warning" size="small">
+                                        System
+                                    </v-chip>
+                                    <span v-else class="text-caption">Custom</span>
+                                </td>
+                                <td>
+                                    <v-btn size="small" icon="mdi-pencil" @click="openDialog(role)" variant="text"
+                                        :disabled="role.is_system"></v-btn>
+                                    <v-btn size="small" icon="mdi-shield-key" @click="openPermissionDialog(role)"
+                                        variant="text"></v-btn>
+                                    <v-btn size="small" icon="mdi-delete" @click="deleteRole(role)" variant="text"
+                                        color="error" :disabled="role.is_system"></v-btn>
+                                </td>
+                            </tr>
+                            <tr v-if="roles.length === 0">
+                                <td colspan="6" class="text-center py-4">No roles found</td>
+                            </tr>
+                        </template>
                     </tbody>
                 </v-table>
 
-                <!-- Pagination and Records Info -->
+                <!-- Pagination -->
                 <div
                     class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <!-- Left: Records Info -->
                     <div class="text-caption text-grey">
                         <span v-if="roles.length > 0 && pagination.total > 0">
-                            Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                            <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
-                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
-                            <span v-if="pagination.last_page > 1" class="ml-2">
-                                (Page {{ currentPage }} of {{ pagination.last_page }})
+                            <span v-if="perPage === 'all'">
+                                Showing <strong>all {{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
+                            <span v-else>
+                                Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                                <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
-                        <span v-else>
-                            No records found
-                        </span>
+                        <span v-else>No records found</span>
                     </div>
-                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
-                        <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
-                            density="comfortable" @update:model-value="loadRoles">
-                        </v-pagination>
-                    </div>
+
+                    <!-- Right: Items Per Page and Pagination -->
+                    <PaginationControls v-model="currentPage" :pagination="pagination" :per-page-value="perPage"
+                        :per-page-options="perPageOptions" @update:per-page="onPerPageUpdate"
+                        @page-change="onPageChange" />
                 </div>
             </v-card-text>
         </v-card>
@@ -330,8 +357,13 @@
  */
 
 import commonMixin from '../../../mixins/commonMixin';
+import PaginationControls from '../../common/PaginationControls.vue';
+import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
+    components: {
+        PaginationControls
+    },
     mixins: [commonMixin],
     data() {
         return {
@@ -393,7 +425,12 @@ export default {
             },
 
             // Flag to prevent infinite loop when auto-generating slug
-            autoGeneratingSlug: false
+            autoGeneratingSlug: false,
+            // Pagination state - using centralized defaults
+            currentPage: defaultPaginationState.currentPage,
+            perPage: defaultPaginationState.perPage,
+            perPageOptions: defaultPaginationState.perPageOptions,
+            pagination: { ...defaultPaginationState.pagination },
         };
     },
     computed: {
@@ -486,6 +523,11 @@ export default {
                 this.loading = true;
                 const params = this.buildPaginationParams();
 
+                // Handle "Show All" option
+                if (this.perPage === 'all') {
+                    params.per_page = 999999; // Very large number to get all records
+                }
+
                 if (this.search) {
                     params.search = this.search;
                 }
@@ -507,12 +549,12 @@ export default {
                 } else {
                     // Non-paginated response (fallback)
                     this.roles = response.data || [];
-                    this.pagination = {
+                    paginationUtils.updatePagination(this, {
                         current_page: 1,
                         last_page: 1,
                         per_page: this.roles.length,
                         total: this.roles.length
-                    };
+                    });
                 }
 
                 // If no roles exist, show a message
@@ -984,6 +1026,21 @@ export default {
             }
         },
 
+        buildPaginationParams(additionalParams = {}) {
+            return paginationUtils.buildPaginationParams(
+                this.currentPage,
+                this.perPage,
+                additionalParams,
+                this.sortBy,
+                this.sortDirection
+            );
+        },
+        updatePagination(responseData) {
+            paginationUtils.updatePagination(this, responseData);
+        },
+        resetPagination() {
+            paginationUtils.resetPagination(this);
+        },
         /**
          * Handle pagination per page change
          * 
@@ -993,7 +1050,14 @@ export default {
             this.resetPagination();
             this.loadRoles();
         },
-
+        onPerPageUpdate(value) {
+            this.perPage = value;
+            this.onPerPageChange();
+        },
+        onPageChange(page) {
+            this.currentPage = page;
+            this.loadRoles();
+        },
         /**
          * Handle table column sorting
          * 
@@ -1003,6 +1067,7 @@ export default {
          */
         onSort(field) {
             this.handleSort(field);
+            this.currentPage = 1; // Reset to first page when sorting changes
             this.loadRoles();
         }
     }
@@ -1038,6 +1103,94 @@ export default {
 
 .permissions-container::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.sort-icon {
+    flex-shrink: 0;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+    background-color: white;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.sort-icon.active {
+    opacity: 1 !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.active :deep(svg),
+.sort-icon.active :deep(path) {
+    fill: currentColor !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    opacity: 1 !important;
+}
+
+.sort-icon.inactive {
+    opacity: 0.7 !important;
+    color: #424242 !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.inactive :deep(svg),
+.sort-icon.inactive :deep(path) {
+    fill: #424242 !important;
+    color: #424242 !important;
+    opacity: 0.7 !important;
+}
+
+.sortable:hover .sort-icon.inactive {
+    opacity: 1 !important;
+    color: #212121 !important;
+    background-color: white !important;
+}
+
+.sortable:hover .sort-icon.inactive :deep(svg),
+.sortable:hover .sort-icon.inactive :deep(path) {
+    fill: #212121 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure icons are visible on table header */
+:deep(.v-table thead th) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable:hover) {
+    background-color: rgba(0, 0, 0, 0.04);
 }
 </style>
 
