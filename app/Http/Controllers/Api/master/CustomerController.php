@@ -69,6 +69,9 @@ class CustomerController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        // Set created_by to current user
+        $validated['created_by'] = auth()->id();
+
         $customer = Customer::create($validated);
         
         return response()->json($customer, 201);
@@ -98,6 +101,9 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ]);
+
+        // Set updated_by to current user
+        $validated['updated_by'] = auth()->id();
 
         $customer->update($validated);
         

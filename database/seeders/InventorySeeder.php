@@ -121,7 +121,9 @@ class InventorySeeder extends Seeder
         foreach ($suppliersData as $supplierData) {
             $suppliers[] = Supplier::firstOrCreate(
                 ['code' => $supplierData['code']],
-                $supplierData
+                array_merge($supplierData, [
+                    'created_by' => $adminUser?->id,
+                ])
             );
         }
         $supplier = $suppliers[0]; // Use first supplier for sample sale
@@ -129,8 +131,8 @@ class InventorySeeder extends Seeder
         // Customers
         $customersData = [
             [
-                'code' => 'CUS-001',
                 'name' => 'Walk-in Customer',
+                'code' => 'CUS-001',
                 'company_name' => null,
                 'email' => null,
                 'phone' => '01800000001',
@@ -147,8 +149,8 @@ class InventorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'code' => 'CUS-002',
                 'name' => 'Ahmed Rahman',
+                'code' => 'CUS-002',
                 'company_name' => 'Rahman Enterprises',
                 'email' => 'ahmed.rahman@email.com',
                 'phone' => '01800000002',
@@ -165,8 +167,8 @@ class InventorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'code' => 'CUS-003',
                 'name' => 'Fatima Begum',
+                'code' => 'CUS-003',
                 'company_name' => 'Fatima Retail Store',
                 'email' => 'fatima@retailstore.com',
                 'phone' => '01800000003',
@@ -188,7 +190,9 @@ class InventorySeeder extends Seeder
         foreach ($customersData as $customerData) {
             $customers[] = Customer::firstOrCreate(
                 ['code' => $customerData['code']],
-                $customerData
+                array_merge($customerData, [
+                    'created_by' => $adminUser?->id,
+                ])
             );
         }
         $customer = $customers[0]; // Use first customer for sample sale
