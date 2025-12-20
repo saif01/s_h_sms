@@ -117,8 +117,8 @@ Route::prefix('v1')->group(function () {
 
         // Stock Management (read-only for reporting/alerts)
         Route::get('stock-ledger', [StockLedgerController::class, 'index']);
-        Route::get('stock-ledger/{stock_ledger}', [StockLedgerController::class, 'show']);
         Route::get('stock-ledger/warehouses', [StockLedgerController::class, 'warehouses']);
+        Route::get('stock-ledger/{stock_ledger}', [StockLedgerController::class, 'show']);
         Route::apiResource('stocks', StockController::class)->only(['index', 'show', 'store']);
 
         // Purchases / Suppliers

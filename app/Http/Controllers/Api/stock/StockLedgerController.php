@@ -13,35 +13,35 @@ class StockLedgerController extends Controller
         $query = StockLedger::with(['product', 'warehouse', 'creator']);
 
         // Filter by product
-        if ($request->has('product_id')) {
+        if ($request->filled('product_id')) {
             $query->where('product_id', $request->product_id);
         }
 
         // Filter by warehouse
-        if ($request->has('warehouse_id')) {
+        if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
         }
 
         // Filter by type (in/out)
-        if ($request->has('type')) {
+        if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
         // Filter by reference type
-        if ($request->has('reference_type')) {
+        if ($request->filled('reference_type')) {
             $query->where('reference_type', $request->reference_type);
         }
 
         // Filter by date range
-        if ($request->has('date_from')) {
-            $query->where('transaction_date', '>=', $request->date_from);
+        if ($request->filled('date_from')) {
+            $query->whereDate('transaction_date', '>=', $request->date_from);
         }
-        if ($request->has('date_to')) {
-            $query->where('transaction_date', '<=', $request->date_to);
+        if ($request->filled('date_to')) {
+            $query->whereDate('transaction_date', '<=', $request->date_to);
         }
 
         // Search by reference number or product name
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('reference_number', 'like', "%{$search}%")

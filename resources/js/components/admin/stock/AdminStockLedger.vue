@@ -17,20 +17,21 @@
                             variant="outlined" density="compact" clearable @update:model-value="loadLedger"></v-select>
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="typeFilter" :items="typeOptions" label="Filter by Type"
-                            variant="outlined" density="compact" clearable @update:model-value="loadLedger"></v-select>
+                        <v-select v-model="typeFilter" :items="typeOptions" label="Filter by Type" variant="outlined"
+                            density="compact" clearable @update:model-value="loadLedger"></v-select>
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="referenceTypeFilter" :items="referenceTypeOptions" label="Filter by Reference"
-                            variant="outlined" density="compact" clearable @update:model-value="loadLedger"></v-select>
+                        <v-select v-model="referenceTypeFilter" :items="referenceTypeOptions"
+                            label="Filter by Reference" variant="outlined" density="compact" clearable
+                            @update:model-value="loadLedger"></v-select>
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-text-field v-model="dateFrom" label="Date From" type="date" variant="outlined"
-                            density="compact" @update:model-value="loadLedger"></v-text-field>
+                        <DatePicker v-model="dateFrom" label="Date From" density="compact"
+                            @update:model-value="onDateFromChange" />
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-text-field v-model="dateTo" label="Date To" type="date" variant="outlined"
-                            density="compact" @update:model-value="loadLedger"></v-text-field>
+                        <DatePicker v-model="dateTo" label="Date To" density="compact"
+                            @update:model-value="onDateToChange" />
                     </v-col>
                     <v-col cols="12" md="3">
                         <v-text-field v-model="search" label="Search by reference number or product"
@@ -87,6 +88,17 @@
                             <th>Total Cost</th>
                             <th>Balance After</th>
                             <th>Created By</th>
+                            <th class="sortable" @click="onSort('created_at')">
+                                <div class="sortable-header">
+                                    <span>Created At</span>
+                                    <v-icon v-if="sortBy === 'created_at'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,11 +114,12 @@
                             <td><v-skeleton-loader type="text" width="80"></v-skeleton-loader></td>
                             <td><v-skeleton-loader type="text" width="80"></v-skeleton-loader></td>
                             <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="120"></v-skeleton-loader></td>
                         </tr>
                         <!-- Actual Ledger Data -->
                         <template v-else>
                             <tr v-for="ledger in ledgers" :key="ledger.id">
-                                <td>{{ formatDate(ledger.transaction_date) }}</td>
+                                <td>{{ formatDateDDMMYYYY(ledger.transaction_date) }}</td>
                                 <td>
                                     <div class="d-flex flex-column">
                                         <span class="font-weight-medium">{{ ledger.product?.name }}</span>
@@ -121,7 +134,8 @@
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column">
-                                        <span class="text-body-2">{{ formatReferenceType(ledger.reference_type) }}</span>
+                                        <span class="text-body-2">{{ formatReferenceType(ledger.reference_type)
+                                            }}</span>
                                         <span class="text-caption text-grey">{{ ledger.reference_number || '-' }}</span>
                                     </div>
                                 </td>
@@ -134,9 +148,10 @@
                                     </v-chip>
                                 </td>
                                 <td>{{ ledger.creator?.name || '-' }}</td>
+                                <td>{{ formatDateShort(ledger.created_at) }}</td>
                             </tr>
                             <tr v-if="ledgers.length === 0">
-                                <td colspan="10" class="text-center py-4">No stock movements found</td>
+                                <td colspan="11" class="text-center py-4">No stock movements found</td>
                             </tr>
                         </template>
                     </tbody>
@@ -173,11 +188,13 @@
 <script>
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
+import DatePicker from '../../common/DatePicker.vue';
 import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
     components: {
-        PaginationControls
+        PaginationControls,
+        DatePicker
     },
     mixins: [commonMixin],
     data() {
@@ -202,8 +219,8 @@ export default {
                 { title: 'Damage', value: 'damage' },
                 { title: 'Lost', value: 'lost' }
             ],
-            dateFrom: null,
-            dateTo: null,
+            dateFrom: '',
+            dateTo: '',
             // Pagination state - using centralized defaults
             currentPage: defaultPaginationState.currentPage,
             perPage: defaultPaginationState.perPage,
@@ -242,10 +259,11 @@ export default {
                 if (this.referenceTypeFilter) {
                     params.reference_type = this.referenceTypeFilter;
                 }
-                if (this.dateFrom) {
+                // Only add date filters if they have values (not null, not empty string)
+                if (this.dateFrom && String(this.dateFrom).trim() !== '') {
                     params.date_from = this.dateFrom;
                 }
-                if (this.dateTo) {
+                if (this.dateTo && String(this.dateTo).trim() !== '') {
                     params.date_to = this.dateTo;
                 }
 
@@ -338,6 +356,19 @@ export default {
         onSort(field) {
             this.handleSort(field);
             this.currentPage = 1; // Reset to first page when sorting changes
+            this.loadLedger();
+        },
+        // Date change handlers - explicitly set the filter value and fetch
+        onDateFromChange(value) {
+            // Set the filter value explicitly (handles both v-model update and direct value)
+            this.dateFrom = value || '';
+            this.resetPagination(); // Reset to first page when filter changes
+            this.loadLedger();
+        },
+        onDateToChange(value) {
+            // Set the filter value explicitly (handles both v-model update and direct value)
+            this.dateTo = value || '';
+            this.resetPagination(); // Reset to first page when filter changes
             this.loadLedger();
         },
     }
@@ -441,4 +472,3 @@ export default {
     background-color: rgba(0, 0, 0, 0.04);
 }
 </style>
-

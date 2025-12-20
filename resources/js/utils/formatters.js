@@ -61,6 +61,57 @@ export function formatDateDDMMYYYY(date) {
 }
 
 /**
+ * Format date to DD/MM/YYYY HH:MM format (e.g., 18/12/2025 14:30)
+ * @param {string|Date} date - Date to format
+ * @returns {string} Formatted date string in DD/MM/YYYY HH:MM format
+ */
+export function formatDateDDMMYYYYHHMM(date) {
+    if (!date) return '';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+    } catch (error) {
+        return date;
+    }
+}
+
+/**
+ * Format date to DD/MM/YYYY HH:MM AM/PM format (e.g., 18/12/2025 02:30 PM)
+ * @param {string|Date} date - Date to format
+ * @returns {string} Formatted date string in DD/MM/YYYY HH:MM AM/PM format
+ */
+export function formatDateShort(date) {
+    if (!date) return '-';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '-';
+
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const formattedHours = String(hours).padStart(2, '0');
+
+        return `${day}/${month}/${year} ${formattedHours}:${minutes} ${ampm}`;
+    } catch (error) {
+        return date;
+    }
+}
+
+/**
  * Truncate text to specified length
  * @param {string} text - Text to truncate
  * @param {number} maxLength - Maximum length
