@@ -1,5 +1,5 @@
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="600"
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="900"
         persistent>
         <v-card>
             <v-card-title>
@@ -11,24 +11,43 @@
                     status, order) cannot be modified. Only permissions can be updated using the permissions button.
                 </v-alert>
                 <v-form ref="roleForm" @submit.prevent="onSave">
-                    <v-text-field v-model="form.name" label="Role Name" :rules="[rules.required]" required
-                        hint="Display name for the role" persistent-hint class="mb-4"
-                        :disabled="editingRole && editingRole.is_system" @blur="autoGenerateSlugFromName"></v-text-field>
+                    <v-text-field v-model="form.name" placeholder="Enter role name (e.g., Administrator, Editor)"
+                        :rules="[rules.required]" required hint="Display name for the role" persistent-hint
+                        variant="outlined" density="comfortable" hide-details="auto" class="mb-4"
+                        :disabled="editingRole && editingRole.is_system" @blur="autoGenerateSlugFromName">
+                        <template #label>
+                            Role Name <span class="text-error" style="font-size: 1.2em; font-weight: bold;">*</span>
+                        </template>
+                    </v-text-field>
 
                     <v-text-field v-model="form.slug" label="Slug"
-                        hint="URL-friendly identifier (auto-generated if empty)" persistent-hint class="mb-4"
-                        :disabled="editingRole && editingRole.is_system"></v-text-field>
+                        placeholder="Enter slug (e.g., administrator, editor) or click generate to auto-generate"
+                        hint="URL-friendly identifier (auto-generated from name if empty)" persistent-hint
+                        variant="outlined" density="comfortable" hide-details="auto"
+                        prepend-inner-icon="mdi-link-variant" class="mb-4"
+                        :disabled="editingRole && editingRole.is_system">
+                        <template #append-inner>
+                            <v-btn icon variant="text" size="small" color="primary"
+                                :disabled="!form.name || (editingRole && editingRole.is_system)"
+                                @click="generateSlugFromName"
+                                :title="form.name ? 'Generate slug from role name' : 'Enter role name first'">
+                                <v-icon size="small">mdi-refresh</v-icon>
+                            </v-btn>
+                        </template>
+                    </v-text-field>
 
-                    <v-textarea v-model="form.description" label="Description" hint="Brief description of the role"
-                        persistent-hint rows="2" class="mb-4" :disabled="editingRole && editingRole.is_system"></v-textarea>
+                    <v-textarea v-model="form.description" label="Description"
+                        placeholder="Enter a brief description of the role and its purpose (optional)"
+                        hint="Brief description of the role" persistent-hint variant="outlined" density="comfortable"
+                        rows="2" hide-details="auto" class="mb-4" :disabled="editingRole && editingRole.is_system" />
 
                     <v-text-field v-model.number="form.order" label="Order" type="number"
-                        hint="Display order (lower numbers first)" persistent-hint class="mb-4"
-                        :disabled="editingRole && editingRole.is_system"></v-text-field>
+                        placeholder="Enter display order (e.g., 0, 1, 2)" hint="Display order (lower numbers first)"
+                        persistent-hint variant="outlined" density="comfortable" hide-details="auto" class="mb-4"
+                        :disabled="editingRole && editingRole.is_system" />
 
-                    <v-switch v-model="form.is_active" label="Active"
-                        hint="Inactive roles cannot be assigned to users" persistent-hint class="mb-4"
-                        :disabled="editingRole && editingRole.is_system"></v-switch>
+                    <v-switch v-model="form.is_active" label="Active" hint="Inactive roles cannot be assigned to users"
+                        persistent-hint class="mb-4" :disabled="editingRole && editingRole.is_system"></v-switch>
 
                     <!-- Permissions Section -->
                     <v-divider class="my-4"></v-divider>
@@ -51,8 +70,10 @@
 
                     <!-- Search Filter -->
                     <v-text-field v-model="permissionSearch" label="Search permissions"
-                        prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable
-                        class="mb-4"></v-text-field>
+                        placeholder="Search by permission name, description, or slug" prepend-inner-icon="mdi-magnify"
+                        variant="outlined" density="compact" clearable
+                        hint="Type to filter permissions by name, description, or slug" persistent-hint
+                        hide-details="auto" class="mb-4" />
 
                     <!-- Permissions List - All Expanded -->
                     <div v-if="Object.keys(filteredGroupedPermissions).length > 0" class="permissions-container mb-4">
@@ -61,7 +82,8 @@
                             <v-card variant="outlined">
                                 <v-card-title class="d-flex justify-space-between align-center py-2">
                                     <div class="d-flex align-center gap-2">
-                                        <span class="text-h6">{{ group.charAt(0).toUpperCase() + group.slice(1) }}</span>
+                                        <span class="text-h6">{{ group.charAt(0).toUpperCase() + group.slice(1)
+                                        }}</span>
                                         <v-chip size="small" color="primary" variant="flat">
                                             {{ getSelectedCountInGroup(group) }} / {{ permissions.length }} selected
                                         </v-chip>
@@ -83,12 +105,13 @@
                                             lg="4">
                                             <v-checkbox :model-value="isFormPermissionSelected(permission.id)"
                                                 @update:model-value="toggleFormPermission(permission.id)"
-                                                :label="permission.name" :hint="permission.description"
-                                                persistent-hint density="comfortable" color="primary">
+                                                :label="permission.name" :hint="permission.description" persistent-hint
+                                                density="comfortable" color="primary">
                                                 <template v-slot:label>
                                                     <div>
                                                         <div class="font-weight-medium">{{ permission.name }}</div>
-                                                        <div v-if="permission.description" class="text-caption text-grey">
+                                                        <div v-if="permission.description"
+                                                            class="text-caption text-grey">
                                                             {{ permission.description }}
                                                         </div>
                                                     </div>
@@ -251,6 +274,11 @@ export default {
         },
         autoGenerateSlugFromName() {
             if (!this.form.slug && this.form.name && !this.editingRole) {
+                this.generateSlugFromName();
+            }
+        },
+        generateSlugFromName() {
+            if (this.form.name) {
                 this.form.slug = this.form.name
                     .toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-')
@@ -405,4 +433,3 @@ export default {
     background: #555;
 }
 </style>
-
