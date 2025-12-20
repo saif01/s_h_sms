@@ -10,6 +10,7 @@ use App\Models\SalesItem;
 use App\Models\Stock;
 use App\Models\Supplier;
 use App\Models\Unit;
+use App\Models\User;
 use App\Models\Warehouse;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -22,6 +23,9 @@ class InventorySeeder extends Seeder
      */
     public function run(): void
     {
+        // Get admin user for created_by and updated_by
+        $adminUser = User::where('email', 'admin@mail.com')->first() ?? User::first();
+
         // Units
         $units = [
             ['name' => 'Piece', 'code' => 'PCS'],
@@ -39,7 +43,14 @@ class InventorySeeder extends Seeder
             ['name' => 'Electronics', 'slug' => 'electronics', 'order' => 3],
         ];
         foreach ($categories as $category) {
-            Category::updateOrCreate(['slug' => $category['slug']], $category);
+            Category::updateOrCreate(
+                ['slug' => $category['slug']],
+                array_merge($category, [
+                    'is_active' => true,
+                    'created_by' => $adminUser?->id,
+                    'updated_by' => $adminUser?->id,
+                ])
+            );
         }
 
         // Warehouse
@@ -73,6 +84,7 @@ class InventorySeeder extends Seeder
                 'barcode' => '1000001',
                 'category_id' => Category::where('slug', 'grocery')->first()->id ?? null,
                 'unit_id' => Unit::where('code', 'KG')->first()->id ?? null,
+                'order' => 1,
                 'purchase_price' => 45,
                 'sale_price' => 55,
                 'minimum_stock_level' => 5,
@@ -83,6 +95,7 @@ class InventorySeeder extends Seeder
                 'barcode' => '1000002',
                 'category_id' => Category::where('slug', 'cosmetics')->first()->id ?? null,
                 'unit_id' => Unit::where('code', 'LTR')->first()->id ?? null,
+                'order' => 2,
                 'purchase_price' => 120,
                 'sale_price' => 150,
                 'minimum_stock_level' => 3,
@@ -92,7 +105,11 @@ class InventorySeeder extends Seeder
         foreach ($products as $data) {
             $product = Product::updateOrCreate(
                 ['sku' => $data['sku']],
-                array_merge($data, ['is_active' => true])
+                array_merge($data, [
+                    'is_active' => true,
+                    'created_by' => $adminUser?->id,
+                    'updated_by' => $adminUser?->id,
+                ])
             );
 
             Stock::updateOrCreate(
@@ -118,7 +135,7 @@ class InventorySeeder extends Seeder
                     'total_amount' => $product->sale_price * 2,
                     'paid_amount' => $product->sale_price * 2,
                     'balance_amount' => 0,
-                    'created_by' => 1,
+                    'created_by' => $adminUser?->id ?? 1,
                 ]
             );
 
