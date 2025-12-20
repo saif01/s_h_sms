@@ -28,14 +28,38 @@ export default {
                 return;
             }
 
-            // Calculate totals
+            // Calculate totals - following SaleDialog.vue logic
             const itemsDiscount = (saleData.items || []).reduce((sum, item) => sum + (parseFloat(item.discount || 0)), 0);
             const itemsTax = (saleData.items || []).reduce((sum, item) => sum + (parseFloat(item.tax || 0)), 0);
-            const totalTax = itemsTax + parseFloat(saleData.tax_amount || 0);
             const subtotal = parseFloat(saleData.subtotal || 0);
-            const discountAmount = parseFloat(saleData.discount_amount || 0);
+            const orderDiscount = parseFloat(saleData.discount_amount || 0);
+            const orderTax = parseFloat(saleData.tax_amount || 0);
             const shippingCost = parseFloat(saleData.shipping_cost || 0);
-            const calculatedTotal = subtotal - discountAmount + totalTax + shippingCost;
+
+            // Backend logic: $discountAmount = $validated['discount_amount'] ?? $discountTotal;
+            // Use order discount if > 0, otherwise use items discount
+            const discountAmount = (orderDiscount > 0 || (orderDiscount === 0 && itemsDiscount === 0))
+                ? orderDiscount
+                : itemsDiscount;
+
+            // Backend logic: $taxAmount = $validated['tax_amount'] ?? $taxTotal;
+            // Use order tax if > 0, otherwise use items tax (not both)
+            const taxAmount = (orderTax > 0 || (orderTax === 0 && itemsTax === 0))
+                ? orderTax
+                : itemsTax;
+
+            // Use backend's total_amount if available (it's already calculated correctly with tax)
+            // Backend formula: $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
+            let calculatedTotal;
+            if (saleData.total_amount !== undefined && saleData.total_amount !== null) {
+                calculatedTotal = parseFloat(saleData.total_amount);
+            } else {
+                // Fallback: Calculate total using the same formula as backend and SaleDialog
+                calculatedTotal = subtotal - discountAmount + taxAmount + shippingCost;
+            }
+
+            // For display purposes, calculate total tax (either order tax or items tax, not both)
+            const totalTax = taxAmount;
 
             // Format date helper
             const formatDate = (dateString) => {
@@ -185,28 +209,28 @@ export default {
                             <span>Subtotal:</span>
                             <span>৳${subtotal.toFixed(2)}</span>
                         </div>
-                        ${itemsDiscount > 0 ? `
+                        ${itemsDiscount > 0 && discountAmount === itemsDiscount ? `
                         <div class="totals-row">
                             <span>Item Discounts:</span>
                             <span style="color: #f44336;">-৳${itemsDiscount.toFixed(2)}</span>
                         </div>
                         ` : ''}
-                        ${discountAmount > 0 ? `
+                        ${orderDiscount > 0 && discountAmount === orderDiscount ? `
                         <div class="totals-row">
                             <span>Order Discount:</span>
-                            <span style="color: #f44336;">-৳${discountAmount.toFixed(2)}</span>
+                            <span style="color: #f44336;">-৳${orderDiscount.toFixed(2)}</span>
                         </div>
                         ` : ''}
-                        ${itemsTax > 0 ? `
+                        ${itemsTax > 0 && taxAmount === itemsTax ? `
                         <div class="totals-row">
                             <span>Item Tax:</span>
                             <span>৳${itemsTax.toFixed(2)}</span>
                         </div>
                         ` : ''}
-                        ${saleData.tax_amount > 0 ? `
+                        ${orderTax > 0 && taxAmount === orderTax ? `
                         <div class="totals-row">
                             <span>Order Tax:</span>
-                            <span>৳${parseFloat(saleData.tax_amount).toFixed(2)}</span>
+                            <span>৳${orderTax.toFixed(2)}</span>
                         </div>
                         ` : ''}
                         ${totalTax > 0 ? `

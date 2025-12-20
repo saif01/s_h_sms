@@ -147,76 +147,6 @@
                         </div>
                     </v-card-text>
                 </v-card>
-
-                <!-- Stock Adjustment Section -->
-                <v-divider class="my-3" />
-                <div class="text-subtitle-2 font-weight-medium mb-2">Adjust Stock</div>
-                <v-card variant="outlined" class="mb-2">
-                    <v-card-text class="pa-2">
-                        <v-form ref="stockFormRef" v-model="stockFormValid" lazy-validation>
-                            <v-row dense class="ma-0">
-                                <v-col cols="12" sm="4" class="pa-2">
-                                    <v-select v-model="stockAdjustment.warehouse_id" :items="warehouseOptions"
-                                        item-value="value" item-title="label" placeholder="Select warehouse" clearable
-                                        density="compact" variant="outlined" hide-details="auto"
-                                        :rules="[rules.required]" hint="Select the warehouse for stock adjustment"
-                                        persistent-hint>
-                                        <template #label>
-                                            Warehouse <span class="text-error"
-                                                style="font-size: 1.2em; font-weight: bold;">*</span>
-                                        </template>
-                                    </v-select>
-                                </v-col>
-                                <v-col cols="12" sm="3" class="pa-2">
-                                    <v-select v-model="stockAdjustment.adjustment_type" :items="adjustmentTypeOptions"
-                                        item-value="value" item-title="label" placeholder="Select adjustment type"
-                                        density="compact" variant="outlined" hide-details="auto"
-                                        :rules="[rules.required]" hint="Set quantity, add stock, or subtract stock"
-                                        persistent-hint>
-                                        <template #label>
-                                            Type <span class="text-error"
-                                                style="font-size: 1.2em; font-weight: bold;">*</span>
-                                        </template>
-                                    </v-select>
-                                </v-col>
-                                <v-col cols="12" sm="3" class="pa-2">
-                                    <v-text-field v-model.number="stockAdjustment.quantity" type="number" min="0"
-                                        placeholder="Enter quantity (e.g., 100)" density="compact" variant="outlined"
-                                        hide-details="auto" :rules="[rules.required, rules.positiveNumber]"
-                                        hint="Enter the quantity to adjust" persistent-hint>
-                                        <template #label>
-                                            Quantity <span class="text-error"
-                                                style="font-size: 1.2em; font-weight: bold;">*</span>
-                                        </template>
-                                    </v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="2" class="pa-2 d-flex align-end">
-                                    <v-btn color="primary" size="small" :loading="adjustingStock" @click="adjustStock"
-                                        :disabled="!isEdit">
-                                        Adjust
-                                    </v-btn>
-                                </v-col>
-                                <v-col cols="12" sm="4" class="pa-2">
-                                    <v-text-field v-model.number="stockAdjustment.unit_cost"
-                                        label="Unit Cost (Optional)" type="number" min="0" step="0.01"
-                                        placeholder="Enter unit cost (e.g., 50.00)" density="compact" variant="outlined"
-                                        hide-details="auto" hint="Optional: Cost per unit for this stock adjustment"
-                                        persistent-hint />
-                                </v-col>
-                                <v-col cols="12" sm="8" class="pa-2">
-                                    <v-text-field v-model="stockAdjustment.notes" label="Notes (Optional)"
-                                        placeholder="Enter notes about this adjustment (optional)" density="compact"
-                                        variant="outlined" hide-details="auto"
-                                        hint="Optional: Additional notes or reason for stock adjustment"
-                                        persistent-hint />
-                                </v-col>
-                            </v-row>
-                        </v-form>
-                        <v-alert v-if="!isEdit" type="info" density="compact" variant="tonal" class="mt-2">
-                            Save the product first to adjust stock
-                        </v-alert>
-                    </v-card-text>
-                </v-card>
             </v-card-text>
             <v-divider />
             <v-card-actions class="pa-2 justify-end">
@@ -246,25 +176,9 @@ export default {
             saving: false,
             categoryOptions: [],
             unitOptions: [],
-            warehouseOptions: [],
             stockByWarehouse: [],
-            stockFormValid: false,
-            adjustingStock: false,
-            stockAdjustment: {
-                warehouse_id: null,
-                quantity: 0,
-                unit_cost: null,
-                adjustment_type: 'set',
-                notes: '',
-            },
-            adjustmentTypeOptions: [
-                { value: 'set', label: 'Set Quantity' },
-                { value: 'add', label: 'Add Stock' },
-                { value: 'subtract', label: 'Subtract Stock' },
-            ],
             rules: {
                 required: v => !!v || 'Required',
-                positiveNumber: v => (v !== null && v !== undefined && v >= 0) || 'Must be 0 or greater',
             },
         };
     },
@@ -311,14 +225,12 @@ export default {
         },
         async fetchOptions() {
             try {
-                const [categoriesRes, unitsRes, warehousesRes] = await Promise.all([
+                const [categoriesRes, unitsRes] = await Promise.all([
                     axios.get('/api/v1/products/categories'),
                     axios.get('/api/v1/products/units'),
-                    axios.get('/api/v1/products/warehouses'),
                 ]);
                 this.categoryOptions = categoriesRes.data.categories || [];
                 this.unitOptions = unitsRes.data.units || [];
-                this.warehouseOptions = warehousesRes.data.warehouses || [];
             } catch (error) {
                 console.error('Failed to load options', error);
             }
@@ -388,57 +300,6 @@ export default {
             if (quantity <= 0) return 'error';
             if (quantity <= this.form.minimum_stock_level) return 'warning';
             return 'success';
-        },
-        async adjustStock() {
-            const valid = await this.$refs.stockFormRef?.validate();
-            if (!valid) return;
-
-            if (!this.stockAdjustment.warehouse_id) {
-                this.$toast?.error('Please select a warehouse');
-                return;
-            }
-
-            this.adjustingStock = true;
-            try {
-                const payload = {
-                    product_id: this.form.id,
-                    warehouse_id: this.stockAdjustment.warehouse_id,
-                    quantity: this.stockAdjustment.quantity,
-                    adjustment_type: this.stockAdjustment.adjustment_type,
-                    unit_cost: this.stockAdjustment.unit_cost || null,
-                    notes: this.stockAdjustment.notes || 'Manual stock adjustment',
-                };
-
-                await axios.post('/api/v1/stocks', payload);
-
-                // Reload product to get updated stock information
-                const response = await axios.get(`/api/v1/products/${this.form.id}`);
-                if (response.data) {
-                    this.form = { ...this.getEmptyForm(), ...response.data };
-                    if (response.data.stock_by_warehouse) {
-                        this.stockByWarehouse = response.data.stock_by_warehouse;
-                    }
-                }
-
-                // Reset stock adjustment form
-                this.stockAdjustment = {
-                    warehouse_id: null,
-                    quantity: 0,
-                    unit_cost: null,
-                    adjustment_type: 'set',
-                    notes: '',
-                };
-                this.$refs.stockFormRef?.resetValidation();
-
-                this.$toast?.success('Stock adjusted successfully');
-                this.$emit('saved'); // Notify parent to refresh list
-            } catch (error) {
-                console.error('Failed to adjust stock', error);
-                const errorMessage = error.response?.data?.message || 'Failed to adjust stock';
-                this.$toast?.error(errorMessage);
-            } finally {
-                this.adjustingStock = false;
-            }
         },
     },
 };

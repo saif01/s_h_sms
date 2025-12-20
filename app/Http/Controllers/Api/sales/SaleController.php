@@ -97,8 +97,14 @@ class SaleController extends Controller
             $taxTotal += $lineTax;
         }
 
-        $discountAmount = $validated['discount_amount'] ?? $discountTotal;
-        $taxAmount = $validated['tax_amount'] ?? $taxTotal;
+        // Use order-level discount/tax if provided in request (even if 0), otherwise use item totals
+        // This matches the frontend logic where these fields are only sent if manually set or > 0
+        $discountAmount = $request->has('discount_amount') 
+            ? ($validated['discount_amount'] ?? 0) 
+            : $discountTotal;
+        $taxAmount = $request->has('tax_amount') 
+            ? ($validated['tax_amount'] ?? 0) 
+            : $taxTotal;
         $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
         $paidAmount = min($paidAmount, $totalAmount);
         $balance = max($totalAmount - $paidAmount, 0);
@@ -276,8 +282,14 @@ class SaleController extends Controller
             $taxTotal += $lineTax;
         }
 
-        $discountAmount = $validated['discount_amount'] ?? $discountTotal;
-        $taxAmount = $validated['tax_amount'] ?? $taxTotal;
+        // Use order-level discount/tax if provided in request (even if 0), otherwise use item totals
+        // This matches the frontend logic where these fields are only sent if manually set or > 0
+        $discountAmount = $request->has('discount_amount') 
+            ? ($validated['discount_amount'] ?? 0) 
+            : $discountTotal;
+        $taxAmount = $request->has('tax_amount') 
+            ? ($validated['tax_amount'] ?? 0) 
+            : $taxTotal;
         $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
         $paidAmount = min($paidAmount, $totalAmount);
         $balance = max($totalAmount - $paidAmount, 0);

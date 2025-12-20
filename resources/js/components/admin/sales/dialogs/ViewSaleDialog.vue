@@ -147,7 +147,8 @@
                                             || 0).toFixed(2) }}</span>
                                     </div>
 
-                                    <div v-if="calculatedItemsDiscount > 0" class="invoice-totals-row">
+                                    <div v-if="calculatedItemsDiscount > 0 && (!saleData.discount_amount || saleData.discount_amount === 0)"
+                                        class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Item Discounts:</span>
                                         <span class="invoice-totals-value text-body-2 text-error">-৳{{
                                             calculatedItemsDiscount.toFixed(2) }}</span>
@@ -159,12 +160,15 @@
                                             parseFloat(saleData.discount_amount).toFixed(2) }}</span>
                                     </div>
 
-                                    <div v-if="calculatedItemsTax > 0" class="invoice-totals-row">
+                                    <!-- Show Item Tax only if order tax is 0 or empty (matching calculatedTotalTax logic) -->
+                                    <div v-if="calculatedItemsTax > 0 && (!saleData.tax_amount || saleData.tax_amount === 0)"
+                                        class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Item Tax:</span>
                                         <span class="invoice-totals-value text-body-2">৳{{ calculatedItemsTax.toFixed(2)
                                         }}</span>
                                     </div>
 
+                                    <!-- Show Order Tax only if it's > 0 (matching calculatedTotalTax logic) -->
                                     <div v-if="saleData.tax_amount > 0" class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Order Tax:</span>
                                         <span class="invoice-totals-value text-body-2">৳{{
@@ -290,20 +294,32 @@ export default {
         calculatedTotalTax() {
             const itemsTax = this.calculatedItemsTax;
             const orderTax = parseFloat(this.saleData?.tax_amount || 0);
-            return itemsTax + orderTax;
+
+            // Backend logic: $taxAmount = $validated['tax_amount'] ?? $taxTotal;
+            // Use order tax if provided (> 0), otherwise use items tax
+            // This matches the backend calculation and SaleDialog logic
+            if (orderTax > 0) {
+                return orderTax;
+            }
+            return itemsTax;
         },
         calculatedTotalAmount() {
             if (!this.saleData) return 0;
 
-            // Calculate total using the same formula as backend:
-            // total = subtotal - discount_amount + tax_amount + shipping_cost
-            // But we need to ensure we include ALL taxes (both item taxes and order tax)
+            // Use backend's total_amount if available (it's already calculated correctly with tax)
+            // Backend formula: $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
+            // where $taxAmount = $validated['tax_amount'] ?? $taxTotal (sum of item taxes)
+            if (this.saleData.total_amount !== undefined && this.saleData.total_amount !== null) {
+                return parseFloat(this.saleData.total_amount);
+            }
+
+            // Fallback: Calculate total using the same formula as backend
             const subtotal = parseFloat(this.saleData.subtotal || 0);
             const discountAmount = parseFloat(this.saleData.discount_amount || 0);
             const shippingCost = parseFloat(this.saleData.shipping_cost || 0);
 
-            // Use calculatedTotalTax which includes both item taxes and order tax
-            // This ensures the total always includes all taxes
+            // Use calculatedTotalTax which uses either order tax or items tax (not both)
+            // This matches the backend and SaleDialog calculation logic
             const totalTax = this.calculatedTotalTax;
 
             const total = subtotal - discountAmount + totalTax + shippingCost;

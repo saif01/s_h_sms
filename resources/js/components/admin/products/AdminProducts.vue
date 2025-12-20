@@ -164,7 +164,11 @@
                                     </v-chip>
                                 </td>
                                 <td>
+                                    <v-btn icon="mdi-eye" variant="text" size="small" color="info"
+                                        @click="openViewDialog(product)" :title="'View Product'" />
                                     <v-btn icon="mdi-pencil" variant="text" size="small" @click="openDialog(product)" />
+                                    <v-btn icon="mdi-package-variant" variant="text" size="small" color="primary"
+                                        @click="openStockDialog(product)" :title="'Adjust Stock'" />
                                     <v-btn icon="mdi-delete" variant="text" size="small" color="error"
                                         @click="deleteProduct(product)" />
                                 </td>
@@ -203,12 +207,16 @@
         </v-card>
 
         <product-dialog v-model="dialog" :product="editingProduct" @saved="loadProducts" />
+        <product-view-dialog v-model="viewDialog" :product="viewingProduct" />
+        <stock-adjustment-dialog v-model="stockDialog" :product="selectedProduct" @saved="loadProducts" />
     </div>
 </template>
 
 <script>
 import commonMixin from '../../../mixins/commonMixin';
 import ProductDialog from './dialogs/ProductDialog.vue';
+import ProductViewDialog from './dialogs/ProductViewDialog.vue';
+import StockAdjustmentDialog from './dialogs/StockAdjustmentDialog.vue';
 import PaginationControls from '../../common/PaginationControls.vue';
 import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
@@ -216,6 +224,8 @@ export default {
     name: 'AdminProducts',
     components: {
         ProductDialog,
+        ProductViewDialog,
+        StockAdjustmentDialog,
         PaginationControls
     },
     mixins: [commonMixin],
@@ -231,6 +241,10 @@ export default {
             activeFilter: null,
             dialog: false,
             editingProduct: null,
+            viewDialog: false,
+            viewingProduct: null,
+            stockDialog: false,
+            selectedProduct: null,
             // Pagination state - using centralized defaults
             currentPage: defaultPaginationState.currentPage,
             perPage: defaultPaginationState.perPage,
@@ -293,6 +307,14 @@ export default {
         openDialog(product) {
             this.editingProduct = product;
             this.dialog = true;
+        },
+        openViewDialog(product) {
+            this.viewingProduct = product;
+            this.viewDialog = true;
+        },
+        openStockDialog(product) {
+            this.selectedProduct = product;
+            this.stockDialog = true;
         },
         async deleteProduct(product) {
             if (!confirm(`Are you sure you want to delete ${product.name}?`)) {
