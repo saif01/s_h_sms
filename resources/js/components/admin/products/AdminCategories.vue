@@ -21,7 +21,7 @@
                             variant="outlined" density="compact" clearable
                             @update:model-value="loadCategories"></v-select>
                     </v-col>
-                    <v-col cols="12" md="3">
+                    <v-col cols="12" md="6">
                         <v-text-field v-model="search" label="Search by name, slug" prepend-inner-icon="mdi-magnify"
                             variant="outlined" density="compact" clearable @input="loadCategories"></v-text-field>
                     </v-col>
@@ -535,7 +535,7 @@ export default {
 
 .sort-icon {
     flex-shrink: 0;
-    transition: opacity 0.2s, color 0.2s;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
     display: inline-flex !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -543,12 +543,16 @@ export default {
     width: 18px !important;
     height: 18px !important;
     line-height: 1 !important;
+    background-color: white;
+    border-radius: 4px;
+    padding: 2px;
 }
 
 .sort-icon.active {
     opacity: 1 !important;
     color: rgb(var(--v-theme-primary)) !important;
     visibility: visible !important;
+    background-color: white !important;
 }
 
 .sort-icon.active :deep(svg),
@@ -562,6 +566,7 @@ export default {
     opacity: 0.7 !important;
     color: #424242 !important;
     visibility: visible !important;
+    background-color: white !important;
 }
 
 .sort-icon.inactive :deep(svg),
@@ -574,6 +579,7 @@ export default {
 .sortable:hover .sort-icon.inactive {
     opacity: 1 !important;
     color: #212121 !important;
+    background-color: white !important;
 }
 
 .sortable:hover .sort-icon.inactive :deep(svg),
