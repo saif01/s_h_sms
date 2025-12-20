@@ -292,19 +292,28 @@ class PurchaseController extends Controller
 
             // Update items if provided
             if (isset($validated['items'])) {
-                $subtotal = 0;
-                $totalTax = 0;
-                $totalDiscount = 0;
+                // Use provided calculated values or calculate from items
+                $subtotal = $validated['subtotal'] ?? 0;
+                $totalTax = $validated['tax_amount'] ?? 0;
+                $totalDiscount = $validated['discount_amount'] ?? 0;
+
+                // If subtotal not provided, calculate from items
+                if ($subtotal == 0) {
+                    foreach ($validated['items'] as $item) {
+                        $lineSubtotal = $item['quantity'] * $item['unit_price'];
+                        $lineDiscount = $item['discount'] ?? 0;
+                        $lineTax = $item['tax'] ?? 0;
+                        $subtotal += $lineSubtotal;
+                        $totalTax += $lineTax;
+                        $totalDiscount += $lineDiscount;
+                    }
+                }
 
                 foreach ($validated['items'] as $item) {
                     $lineSubtotal = $item['quantity'] * $item['unit_price'];
                     $lineDiscount = $item['discount'] ?? 0;
                     $lineTax = $item['tax'] ?? 0;
                     $itemTotal = $lineSubtotal - $lineDiscount + $lineTax;
-                    
-                    $subtotal += $lineSubtotal;
-                    $totalTax += $lineTax;
-                    $totalDiscount += $lineDiscount;
 
                     $purchaseItem = $purchase->items()->create([
                         'product_id' => $item['product_id'],

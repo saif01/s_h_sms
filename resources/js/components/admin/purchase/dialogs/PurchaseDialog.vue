@@ -92,10 +92,11 @@
                                                 <v-select v-model="item.product_id" :items="validProductOptions"
                                                     item-title="label" item-value="value" label="Product"
                                                     placeholder="Select product" density="compact" variant="outlined"
-                                                    hide-details
-                                                    :menu-props="{ maxHeight: 400, offset: true, attach: 'body' }"
+                                                    hide-details="auto"
+                                                    :menu-props="{ maxHeight: 400, offset: true, attach: 'body', zIndex: 9999 }"
                                                     @update:model-value="calculateItemTotal(index)"
-                                                    :rules="[rules.required]"></v-select>
+                                                    :rules="[rules.required]" clearable
+                                                    no-data-text="No products available"></v-select>
                                             </td>
                                             <td class="pa-1">
                                                 <v-text-field v-model.number="item.quantity" type="number" min="1"
@@ -238,9 +239,9 @@ export default {
     },
     computed: {
         calculatedSubtotal() {
+            // Subtotal = sum of (quantity × unit_price) without discount
             return this.localForm.items.reduce((sum, item) => {
-                const itemTotal = (item.quantity || 0) * (item.unit_price || 0) - (item.discount || 0);
-                return sum + itemTotal;
+                return sum + ((item.quantity || 0) * (item.unit_price || 0));
             }, 0);
         },
         calculatedTax() {
@@ -250,14 +251,29 @@ export default {
             return this.localForm.items.reduce((sum, item) => sum + (item.discount || 0), 0);
         },
         calculatedTotal() {
+            // Total = subtotal + tax + shipping - discount (matches backend logic)
             return this.calculatedSubtotal + this.calculatedTax + (this.localForm.shipping_cost || 0) - this.calculatedDiscount;
         },
         validProductOptions() {
             // Ensure productOptions is always an array and properly formatted
             if (!Array.isArray(this.productOptions)) {
+                console.warn('ProductOptions is not an array:', this.productOptions);
                 return [];
             }
-            return this.productOptions.filter(option => option && option.label && option.value);
+            if (this.productOptions.length === 0) {
+                console.warn('ProductOptions is empty');
+                return [];
+            }
+            // Return all options that have both label and value
+            const valid = this.productOptions.filter(option => {
+                const hasLabel = option && (option.label || option.title);
+                const hasValue = option && (option.value !== undefined && option.value !== null);
+                return hasLabel && hasValue;
+            });
+            if (valid.length === 0 && this.productOptions.length > 0) {
+                console.warn('No valid product options found. ProductOptions:', this.productOptions);
+            }
+            return valid;
         }
     },
     watch: {
@@ -275,6 +291,15 @@ export default {
                 }
             },
             deep: true
+        },
+        productOptions: {
+            handler(newVal) {
+                // Ensure productOptions are reactive
+                if (newVal && Array.isArray(newVal) && newVal.length > 0) {
+                    console.log('ProductOptions updated:', newVal.length, 'products');
+                }
+            },
+            immediate: true
         }
     },
     methods: {
@@ -347,7 +372,24 @@ export default {
                 return;
             }
 
-            this.$emit('save', { ...this.localForm }, null);
+            // Prepare form data with calculated totals to match backend expectations
+            const formData = {
+                ...this.localForm,
+                subtotal: this.calculatedSubtotal,
+                tax_amount: this.calculatedTax,
+                discount_amount: this.calculatedDiscount,
+                shipping_cost: this.localForm.shipping_cost || 0,
+                items: this.localForm.items.map(item => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    discount: item.discount || 0,
+                    tax: item.tax || 0,
+                    notes: item.notes || null,
+                }))
+            };
+
+            this.$emit('save', formData, null);
         },
         handleCancel() {
             this.resetForm();
