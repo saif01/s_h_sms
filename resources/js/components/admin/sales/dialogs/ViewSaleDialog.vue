@@ -109,13 +109,13 @@
                                     <td class="text-grey text-caption">{{ index + 1 }}</td>
                                     <td>
                                         <div class="text-body-2 font-weight-medium">{{ item.product?.name || 'Unknown'
-                                        }}</div>
+                                            }}</div>
                                         <div v-if="item.product?.sku" class="text-caption text-grey">SKU: {{
                                             item.product.sku }}</div>
                                     </td>
                                     <td class="text-center text-body-2">{{ item.quantity }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.unit_price || 0).toFixed(2)
-                                    }}</td>
+                                        }}</td>
                                     <td class="text-right text-body-2 text-error">-৳{{ parseFloat(item.discount ||
                                         0).toFixed(2) }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.tax || 0).toFixed(2) }}</td>
@@ -162,7 +162,7 @@
                                     <div v-if="calculatedItemsTax > 0" class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Item Tax:</span>
                                         <span class="invoice-totals-value text-body-2">৳{{ calculatedItemsTax.toFixed(2)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                     <div v-if="saleData.tax_amount > 0" class="invoice-totals-row">
@@ -237,6 +237,7 @@
 <script>
 import axios from '@/utils/axios.config';
 import { formatDate } from '@/utils/formatters';
+import InvoicePrint from '../InvoicePrint.js';
 
 export default {
     name: 'ViewSaleDialog',
@@ -353,34 +354,12 @@ export default {
             return colors[status] || 'grey';
         },
         printInvoice() {
-            // Use nextTick to ensure DOM is ready
-            this.$nextTick(() => {
-                // Try to find dialog element safely
-                let dialog = null;
-                if (this.$el) {
-                    // Check if $el is a DOM element
-                    if (this.$el.nodeType === 1) {
-                        dialog = this.$el.closest('.v-dialog');
-                    } else if (this.$el.querySelector) {
-                        // If $el is a component, try to find dialog in it
-                        dialog = this.$el.querySelector('.v-dialog');
-                    }
-                }
-
-                // Also try document querySelector as fallback
-                if (!dialog) {
-                    dialog = document.querySelector('.v-dialog');
-                }
-
-                if (dialog) {
-                    dialog.style.position = 'relative';
-                    dialog.style.margin = '0';
-                }
-
-                // Trigger print
-                setTimeout(() => {
-                    window.print();
-                }, 100);
+            if (!this.sale || !this.sale.id) {
+                this.showError('Sale information not available');
+                return;
+            }
+            InvoicePrint.printInvoice(this.sale, (errorMessage) => {
+                this.showError(errorMessage);
             });
         },
         close() {
