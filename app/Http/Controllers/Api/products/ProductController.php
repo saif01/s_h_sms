@@ -118,15 +118,18 @@ class ProductController extends Controller
             $validated['tax_rate'] = 0;
         }
 
+        // Set created_by to current user
+        $validated['created_by'] = auth()->id();
+
         $product = Product::create($validated);
-        $product->load(['category', 'unit']);
+        $product->load(['category', 'unit', 'createdBy']);
         
         return response()->json($this->transformProductImage($product), 201);
     }
 
     public function show(Product $product)
     {
-        $product->load(['category', 'unit', 'stocks.warehouse']);
+        $product->load(['category', 'unit', 'stocks.warehouse', 'createdBy', 'updatedBy']);
         $product = $this->transformProductImage($product);
         // Add stock summary per warehouse
         $product->stock_by_warehouse = $product->stocks->map(function ($stock) {
@@ -166,8 +169,11 @@ class ProductController extends Controller
             $validated['image'] = MediaPath::normalize($validated['image']);
         }
 
+        // Set updated_by to current user
+        $validated['updated_by'] = auth()->id();
+
         $product->update($validated);
-        $product->load(['category', 'unit', 'stocks.warehouse']);
+        $product->load(['category', 'unit', 'stocks.warehouse', 'createdBy', 'updatedBy']);
         $product = $this->transformProductImage($product);
         // Add stock summary per warehouse
         $product->stock_by_warehouse = $product->stocks->map(function ($stock) {

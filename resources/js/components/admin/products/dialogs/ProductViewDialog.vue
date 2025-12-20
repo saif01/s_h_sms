@@ -36,7 +36,7 @@
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">ID:</span>
                                                 <span class="text-body-2 font-weight-medium ml-1">{{ product.id || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                         </v-col>
                                         <v-col cols="12" sm="6" md="4" class="pa-2">
@@ -70,7 +70,7 @@
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">Category:</span>
                                                 <span class="text-body-2 ml-1">{{ product.category?.name || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                         </v-col>
                                         <v-col cols="12" sm="6" md="4" class="pa-2">
@@ -83,7 +83,7 @@
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">Name:</span>
                                                 <span class="text-body-2 font-weight-medium ml-1">{{ product.name || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                         </v-col>
                                         <v-col cols="12" class="pa-2" v-if="product.description">
@@ -122,7 +122,7 @@
                                     <div class="info-item-compact">
                                         <span class="text-caption text-grey">Tax:</span>
                                         <span class="text-body-2 ml-1">{{ parseFloat(product.tax_rate || 0).toFixed(1)
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </v-col>
                                 <v-col cols="6" sm="2" class="pa-2">
@@ -154,11 +154,40 @@
                                         <span class="text-body-2 ml-1">{{ product.minimum_stock_level || 0 }}</span>
                                     </div>
                                 </v-col>
-                                <v-col cols="12" sm="4" class="pa-2">
+                            </v-row>
+                        </v-card-text>
+                    </v-card>
+
+                    <!-- Created & Updated Information Section -->
+                    <v-divider class="my-2" />
+                    <div class="text-subtitle-2 font-weight-medium mb-2">Audit Information</div>
+                    <v-card variant="outlined" class="mb-2">
+                        <v-card-text class="pa-2">
+                            <v-row dense class="ma-0">
+                                <v-col cols="12" sm="6" class="pa-2">
                                     <div class="info-item-compact">
-                                        <span class="text-caption text-grey">Created:</span>
+                                        <span class="text-caption text-grey">Created By:</span>
+                                        <span class="text-body-2 ml-1">{{ product.created_by?.name || '-' }}</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" sm="6" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Created At:</span>
                                         <span class="text-body-2 ml-1">{{ formatDateShort(product.created_at) || '-'
-                                        }}</span>
+                                            }}</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" sm="6" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Updated By:</span>
+                                        <span class="text-body-2 ml-1">{{ product.updated_by?.name || '-' }}</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" sm="6" class="pa-2">
+                                    <div class="info-item-compact">
+                                        <span class="text-caption text-grey">Updated At:</span>
+                                        <span class="text-body-2 ml-1">{{ formatDateShort(product.updated_at) || '-'
+                                            }}</span>
                                     </div>
                                 </v-col>
                             </v-row>
@@ -294,11 +323,18 @@ export default {
         formatDateShort(dateString) {
             if (!dateString) return '-';
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-            });
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+
+            let hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const formattedHours = String(hours).padStart(2, '0');
+
+            return `${day}/${month}/${year} ${formattedHours}:${minutes} ${ampm}`;
         },
         close() {
             this.$emit('update:modelValue', false);
