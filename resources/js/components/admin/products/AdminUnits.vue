@@ -175,21 +175,29 @@
                 <v-card-text class="pa-0">
                     <v-form ref="formRef" @submit.prevent="saveUnit">
                         <div class="pa-6">
-                            <v-text-field v-model="form.name" :rules="[rules.required]" required class="mb-4">
+                            <v-text-field v-model="form.name"
+                                placeholder="Enter unit name (e.g., Kilogram, Piece, Liter)" :rules="[rules.required]"
+                                required variant="outlined" density="comfortable" hide-details="auto"
+                                hint="Enter the full name of the measurement unit" persistent-hint class="mb-4">
                                 <template v-slot:label>
-                                    Unit Name <span class="text-error">*</span>
+                                    Unit Name <span class="text-error"
+                                        style="font-size: 1.2em; font-weight: bold;">*</span>
                                 </template>
                             </v-text-field>
 
-                            <v-text-field v-model="form.code" label="Code" hint="e.g., KG, PCS, LTR" persistent-hint
-                                :rules="[rules.required]" required class="mb-4">
+                            <v-text-field v-model="form.code" placeholder="Enter unit code (e.g., KG, PCS, LTR)"
+                                hint="Short code or abbreviation for the unit (e.g., KG, PCS, LTR)" persistent-hint
+                                :rules="[rules.required]" required variant="outlined" density="comfortable"
+                                hide-details="auto" class="mb-4">
                                 <template v-slot:label>
-                                    Code <span class="text-error">*</span>
+                                    Code <span class="text-error" style="font-size: 1.2em; font-weight: bold;">*</span>
                                 </template>
                             </v-text-field>
 
-                            <v-textarea v-model="form.description" label="Description" variant="outlined" rows="3"
-                                hint="Brief description about the unit" persistent-hint class="mb-4"></v-textarea>
+                            <v-textarea v-model="form.description" label="Description"
+                                placeholder="Enter a brief description about the unit (optional)" variant="outlined"
+                                density="comfortable" rows="3" hint="Optional: Brief description about the unit"
+                                persistent-hint hide-details="auto" class="mb-4" />
 
                             <v-switch v-model="form.is_active" label="Active Unit" color="success"
                                 class="mb-4"></v-switch>

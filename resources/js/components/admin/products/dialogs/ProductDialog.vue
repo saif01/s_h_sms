@@ -12,15 +12,24 @@
                 <v-form ref="formRef" v-model="formValid" lazy-validation>
                     <v-row dense class="ma-0">
                         <v-col cols="12" sm="8" class="pa-2">
-                            <v-text-field v-model="form.name" label="Product Name" :rules="[rules.required]"
-                                density="compact" variant="outlined" hide-details="auto" />
+                            <v-text-field v-model="form.name"
+                                placeholder="Enter product name (e.g., Samsung Galaxy S21)" :rules="[rules.required]"
+                                density="compact" variant="outlined" hide-details="auto"
+                                hint="Enter the full product name as it should appear in the system" persistent-hint>
+                                <template #label>
+                                    Product Name <span class="text-error"
+                                        style="font-size: 1.2em; font-weight: bold;">*</span>
+                                </template>
+                            </v-text-field>
                         </v-col>
                         <v-col cols="12" sm="4" class="pa-2 d-flex align-center">
                             <v-switch v-model="form.is_active" inset label="Active" density="compact" hide-details />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model="form.sku" label="SKU" density="compact" variant="outlined"
-                                hide-details>
+                            <v-text-field v-model="form.sku" label="SKU"
+                                placeholder="Enter SKU or click generate to auto-generate" density="compact"
+                                variant="outlined" hide-details="auto"
+                                hint="Stock Keeping Unit - unique identifier for the product" persistent-hint>
                                 <template #append-inner>
                                     <v-btn icon="mdi-refresh" size="x-small" variant="text" @click="generateSKU"
                                         :title="'Generate SKU'" />
@@ -28,47 +37,72 @@
                             </v-text-field>
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model="form.barcode" label="Barcode" density="compact" variant="outlined"
-                                hide-details />
+                            <v-text-field v-model="form.barcode" label="Barcode"
+                                placeholder="Enter barcode (e.g., 1234567890123)" density="compact" variant="outlined"
+                                hide-details="auto" hint="Optional: Product barcode for scanning" persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model="form.brand" label="Brand" density="compact" variant="outlined"
-                                hide-details />
+                            <v-text-field v-model="form.brand" label="Brand"
+                                placeholder="Enter brand name (e.g., Samsung, Apple)" density="compact"
+                                variant="outlined" hide-details="auto"
+                                hint="Optional: Product brand or manufacturer name" persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model="form.image" label="Image URL" density="compact" variant="outlined"
-                                hide-details />
+                            <v-text-field v-model="form.image" label="Image URL"
+                                placeholder="Enter image URL or leave empty" density="compact" variant="outlined"
+                                hide-details="auto" hint="Optional: Direct URL to product image" persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-select v-model="form.category_id" :items="categoryOptions" item-value="value"
-                                item-title="label" label="Category" clearable density="compact" variant="outlined"
-                                hide-details />
+                                item-title="label" label="Category" placeholder="Select a category" clearable
+                                density="compact" variant="outlined" hide-details="auto"
+                                hint="Optional: Product category for organization" persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-select v-model="form.unit_id" :items="unitOptions" item-value="value" item-title="label"
-                                label="Unit" clearable density="compact" variant="outlined" hide-details />
+                                label="Unit" placeholder="Select a unit" clearable density="compact" variant="outlined"
+                                hide-details="auto" hint="Optional: Measurement unit (e.g., KG, PCS, LTR)"
+                                persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model.number="form.purchase_price" label="Purchase Price" type="number"
-                                min="0" step="0.01" :rules="[rules.required]" density="compact" variant="outlined"
-                                hide-details="auto" />
+                            <v-text-field v-model.number="form.purchase_price" type="number" min="0" step="0.01"
+                                placeholder="Enter purchase price (e.g., 1000.00)" :rules="[rules.required]"
+                                density="compact" variant="outlined" hide-details="auto"
+                                hint="Cost price at which the product was purchased" persistent-hint>
+                                <template #label>
+                                    Purchase Price <span class="text-error"
+                                        style="font-size: 1.2em; font-weight: bold;">*</span>
+                                </template>
+                            </v-text-field>
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
-                            <v-text-field v-model.number="form.sale_price" label="Sale Price" type="number" min="0"
-                                step="0.01" :rules="[rules.required]" density="compact" variant="outlined"
-                                hide-details="auto" />
+                            <v-text-field v-model.number="form.sale_price" type="number" min="0" step="0.01"
+                                placeholder="Enter sale price (e.g., 1500.00)" :rules="[rules.required]"
+                                density="compact" variant="outlined" hide-details="auto"
+                                hint="Selling price of the product to customers" persistent-hint>
+                                <template #label>
+                                    Sale Price <span class="text-error"
+                                        style="font-size: 1.2em; font-weight: bold;">*</span>
+                                </template>
+                            </v-text-field>
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-text-field v-model.number="form.tax_rate" label="VAT/Tax (%)" type="number" min="0"
-                                step="0.01" density="compact" variant="outlined" hide-details />
+                                step="0.01" placeholder="Enter tax rate (e.g., 15.00)" density="compact"
+                                variant="outlined" hide-details="auto"
+                                hint="Optional: VAT or tax percentage applied to the product" persistent-hint />
                         </v-col>
                         <v-col cols="12" sm="6" class="pa-2">
                             <v-text-field v-model.number="form.minimum_stock_level" label="Minimum Stock Alert"
-                                type="number" min="0" density="compact" variant="outlined" hide-details />
+                                type="number" min="0" placeholder="Enter minimum stock level (e.g., 10)"
+                                density="compact" variant="outlined" hide-details="auto"
+                                hint="Optional: Alert when stock falls below this quantity" persistent-hint />
                         </v-col>
                         <v-col cols="12" class="pa-2">
-                            <v-textarea v-model="form.description" label="Description" rows="2" density="compact"
-                                variant="outlined" hide-details />
+                            <v-textarea v-model="form.description" label="Description" rows="2"
+                                placeholder="Enter product description (optional)" density="compact" variant="outlined"
+                                hide-details="auto" hint="Optional: Detailed description of the product"
+                                persistent-hint />
                         </v-col>
                     </v-row>
                 </v-form>
@@ -123,19 +157,38 @@
                             <v-row dense class="ma-0">
                                 <v-col cols="12" sm="4" class="pa-2">
                                     <v-select v-model="stockAdjustment.warehouse_id" :items="warehouseOptions"
-                                        item-value="value" item-title="label" label="Warehouse" clearable
+                                        item-value="value" item-title="label" placeholder="Select warehouse" clearable
                                         density="compact" variant="outlined" hide-details="auto"
-                                        :rules="[rules.required]" />
+                                        :rules="[rules.required]" hint="Select the warehouse for stock adjustment"
+                                        persistent-hint>
+                                        <template #label>
+                                            Warehouse <span class="text-error"
+                                                style="font-size: 1.2em; font-weight: bold;">*</span>
+                                        </template>
+                                    </v-select>
                                 </v-col>
                                 <v-col cols="12" sm="3" class="pa-2">
                                     <v-select v-model="stockAdjustment.adjustment_type" :items="adjustmentTypeOptions"
-                                        item-value="value" item-title="label" label="Type" density="compact"
-                                        variant="outlined" hide-details="auto" :rules="[rules.required]" />
+                                        item-value="value" item-title="label" placeholder="Select adjustment type"
+                                        density="compact" variant="outlined" hide-details="auto"
+                                        :rules="[rules.required]" hint="Set quantity, add stock, or subtract stock"
+                                        persistent-hint>
+                                        <template #label>
+                                            Type <span class="text-error"
+                                                style="font-size: 1.2em; font-weight: bold;">*</span>
+                                        </template>
+                                    </v-select>
                                 </v-col>
                                 <v-col cols="12" sm="3" class="pa-2">
-                                    <v-text-field v-model.number="stockAdjustment.quantity" label="Quantity"
-                                        type="number" min="0" density="compact" variant="outlined" hide-details="auto"
-                                        :rules="[rules.required, rules.positiveNumber]" />
+                                    <v-text-field v-model.number="stockAdjustment.quantity" type="number" min="0"
+                                        placeholder="Enter quantity (e.g., 100)" density="compact" variant="outlined"
+                                        hide-details="auto" :rules="[rules.required, rules.positiveNumber]"
+                                        hint="Enter the quantity to adjust" persistent-hint>
+                                        <template #label>
+                                            Quantity <span class="text-error"
+                                                style="font-size: 1.2em; font-weight: bold;">*</span>
+                                        </template>
+                                    </v-text-field>
                                 </v-col>
                                 <v-col cols="12" sm="2" class="pa-2 d-flex align-end">
                                     <v-btn color="primary" size="small" :loading="adjustingStock" @click="adjustStock"
@@ -145,12 +198,17 @@
                                 </v-col>
                                 <v-col cols="12" sm="4" class="pa-2">
                                     <v-text-field v-model.number="stockAdjustment.unit_cost"
-                                        label="Unit Cost (Optional)" type="number" min="0" step="0.01" density="compact"
-                                        variant="outlined" hide-details />
+                                        label="Unit Cost (Optional)" type="number" min="0" step="0.01"
+                                        placeholder="Enter unit cost (e.g., 50.00)" density="compact" variant="outlined"
+                                        hide-details="auto" hint="Optional: Cost per unit for this stock adjustment"
+                                        persistent-hint />
                                 </v-col>
                                 <v-col cols="12" sm="8" class="pa-2">
                                     <v-text-field v-model="stockAdjustment.notes" label="Notes (Optional)"
-                                        density="compact" variant="outlined" hide-details />
+                                        placeholder="Enter notes about this adjustment (optional)" density="compact"
+                                        variant="outlined" hide-details="auto"
+                                        hint="Optional: Additional notes or reason for stock adjustment"
+                                        persistent-hint />
                                 </v-col>
                             </v-row>
                         </v-form>

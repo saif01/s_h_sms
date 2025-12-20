@@ -169,20 +169,31 @@
                 <v-card-text class="pa-0">
                     <v-form ref="form" @submit.prevent="saveCategory">
                         <div class="pa-6">
-                            <v-text-field v-model="form.name" :rules="[rules.required]" required class="mb-4">
+                            <v-text-field v-model="form.name"
+                                placeholder="Enter category name (e.g., Electronics, Clothing)"
+                                :rules="[rules.required]" required variant="outlined" density="comfortable"
+                                hide-details="auto" hint="Enter the category name as it should appear in the system"
+                                persistent-hint class="mb-4">
                                 <template v-slot:label>
-                                    Category Name <span class="text-error">*</span>
+                                    Category Name <span class="text-error"
+                                        style="font-size: 1.2em; font-weight: bold;">*</span>
                                 </template>
                             </v-text-field>
 
-                            <v-text-field v-model="form.slug" label="Slug" hint="Auto-generated from category name"
-                                persistent-hint class="mb-4" readonly></v-text-field>
+                            <v-text-field v-model="form.slug" label="Slug"
+                                placeholder="Auto-generated from category name"
+                                hint="Auto-generated from category name (read-only)" persistent-hint variant="outlined"
+                                density="comfortable" hide-details="auto" readonly class="mb-4" />
 
                             <v-text-field v-model.number="form.order" label="Display Order" type="number" min="0"
-                                hint="Lower numbers appear first" persistent-hint class="mb-4"></v-text-field>
+                                placeholder="Enter display order (e.g., 0, 1, 2)"
+                                hint="Lower numbers appear first in the category list" persistent-hint
+                                variant="outlined" density="comfortable" hide-details="auto" class="mb-4" />
 
-                            <v-textarea v-model="form.description" label="Description" variant="outlined" rows="3"
-                                hint="Brief description about the category" persistent-hint class="mb-4"></v-textarea>
+                            <v-textarea v-model="form.description" label="Description"
+                                placeholder="Enter a brief description about the category (optional)" variant="outlined"
+                                density="comfortable" rows="3" hint="Optional: Brief description about the category"
+                                persistent-hint hide-details="auto" class="mb-4" />
 
                             <!-- Image Upload Section -->
                             <div class="mb-4">

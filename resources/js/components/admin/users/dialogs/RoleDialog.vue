@@ -83,7 +83,7 @@
                                 <v-card-title class="d-flex justify-space-between align-center py-2">
                                     <div class="d-flex align-center gap-2">
                                         <span class="text-h6">{{ group.charAt(0).toUpperCase() + group.slice(1)
-                                        }}</span>
+                                            }}</span>
                                         <v-chip size="small" color="primary" variant="flat">
                                             {{ getSelectedCountInGroup(group) }} / {{ permissions.length }} selected
                                         </v-chip>
