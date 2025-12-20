@@ -49,8 +49,8 @@
                 <!-- ============================================ -->
                 <!-- INVENTORY MANAGEMENT -->
                 <!-- ============================================ -->
-                <v-list-group v-if="hasPermission('view-products')" value="inventory"
-                    prepend-icon="mdi-package-variant" no-action>
+                <v-list-group v-if="hasPermission('view-products')" value="inventory" prepend-icon="mdi-package-variant"
+                    no-action>
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" title="Inventory"></v-list-item>
                     </template>
@@ -59,7 +59,7 @@
                     <v-list-item prepend-icon="mdi-folder-multiple" title="Categories"
                         :to="{ name: 'AdminCategories' }">
                     </v-list-item>
-                    <v-list-item v-if="hasPermission('manage-units')" prepend-icon="mdi-weight-kilogram" title="Units" 
+                    <v-list-item v-if="hasPermission('manage-units')" prepend-icon="mdi-weight-kilogram" title="Units"
                         :to="{ name: 'AdminUnits' }">
                     </v-list-item>
                 </v-list-group>
@@ -67,23 +67,24 @@
                 <!-- ============================================ -->
                 <!-- STOCK MANAGEMENT -->
                 <!-- ============================================ -->
-                <v-list-group v-if="hasPermission('view-stock-ledger')" value="stock" prepend-icon="mdi-warehouse" no-action>
+                <v-list-group v-if="hasPermission('view-stock-ledger')" value="stock" prepend-icon="mdi-warehouse"
+                    no-action>
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" title="Stock Management"></v-list-item>
                     </template>
                     <v-list-item prepend-icon="mdi-book-open-variant" title="Stock Ledger"
                         :to="{ name: 'AdminStockLedger' }">
                     </v-list-item>
-                    <v-list-item v-if="hasPermission('manage-warehouses')" prepend-icon="mdi-home-city" title="Warehouses" 
-                        :to="{ name: 'AdminWarehouses' }">
+                    <v-list-item v-if="hasPermission('manage-warehouses')" prepend-icon="mdi-home-city"
+                        title="Warehouses" :to="{ name: 'AdminWarehouses' }">
                     </v-list-item>
                 </v-list-group>
 
                 <!-- ============================================ -->
                 <!-- PURCHASE MANAGEMENT -->
                 <!-- ============================================ -->
-                <v-list-group v-if="hasPermission('view-purchases')" value="purchase"
-                    prepend-icon="mdi-cart-arrow-down" no-action>
+                <v-list-group v-if="hasPermission('view-purchases')" value="purchase" prepend-icon="mdi-cart-arrow-down"
+                    no-action>
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" title="Purchase Management"></v-list-item>
                     </template>
@@ -101,14 +102,16 @@
                 <!-- ============================================ -->
                 <!-- MASTER DATA -->
                 <!-- ============================================ -->
-                <v-list-group v-if="hasPermission('manage-suppliers') || hasPermission('manage-customers')" value="master" prepend-icon="mdi-database"
-                    no-action>
+                <v-list-group v-if="hasPermission('manage-suppliers') || hasPermission('manage-customers')"
+                    value="master" prepend-icon="mdi-database" no-action>
                     <template v-slot:activator="{ props }">
                         <v-list-item v-bind="props" title="Master Data"></v-list-item>
                     </template>
-                    <v-list-item v-if="hasPermission('manage-suppliers')" prepend-icon="mdi-truck-delivery" title="Suppliers" :to="{ name: 'AdminSuppliers' }">
+                    <v-list-item v-if="hasPermission('manage-suppliers')" prepend-icon="mdi-truck-delivery"
+                        title="Suppliers" :to="{ name: 'AdminSuppliers' }">
                     </v-list-item>
-                    <v-list-item v-if="hasPermission('manage-customers')" prepend-icon="mdi-account-group" title="Customers" :to="{ name: 'AdminCustomers' }">
+                    <v-list-item v-if="hasPermission('manage-customers')" prepend-icon="mdi-account-group"
+                        title="Customers" :to="{ name: 'AdminCustomers' }">
                     </v-list-item>
                 </v-list-group>
 
@@ -217,7 +220,7 @@
 import moment from 'moment';
 import { useAuthStore } from '../../stores/auth';
 import { resolveUploadUrl } from '../../utils/uploads';
-import UserProfileDialog from './users/UserProfileDialog.vue';
+import UserProfileDialog from './users/dialogs/UserProfileDialog.vue';
 
 export default {
     components: {

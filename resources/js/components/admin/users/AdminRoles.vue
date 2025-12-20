@@ -162,179 +162,12 @@
         </v-card>
 
         <!-- Role Dialog -->
-        <v-dialog v-model="dialog" max-width="600" persistent>
-            <v-card>
-                <v-card-title>
-                    {{ editingRole ? 'Edit Role' : 'Add New Role' }}
-                </v-card-title>
-                <v-card-text>
-                    <v-alert v-if="editingRole && editingRole.is_system" type="info" variant="tonal" class="mb-4">
-                        <strong>System Role:</strong> This is a system role. Core properties (name, slug, description,
-                        status, order) cannot be modified. Only permissions can be updated using the permissions button.
-                    </v-alert>
-                    <v-form ref="roleForm" @submit.prevent="saveRole">
-                        <v-text-field v-model="form.name" label="Role Name" :rules="[rules.required]" required
-                            hint="Display name for the role" persistent-hint class="mb-4"
-                            :disabled="editingRole && editingRole.is_system"
-                            @blur="autoGenerateSlugFromName"></v-text-field>
-
-                        <v-text-field v-model="form.slug" label="Slug"
-                            hint="URL-friendly identifier (auto-generated if empty)" persistent-hint class="mb-4"
-                            :disabled="editingRole && editingRole.is_system"></v-text-field>
-
-                        <v-textarea v-model="form.description" label="Description" hint="Brief description of the role"
-                            persistent-hint rows="2" class="mb-4"
-                            :disabled="editingRole && editingRole.is_system"></v-textarea>
-
-                        <v-text-field v-model.number="form.order" label="Order" type="number"
-                            hint="Display order (lower numbers first)" persistent-hint class="mb-4"
-                            :disabled="editingRole && editingRole.is_system"></v-text-field>
-
-                        <v-switch v-model="form.is_active" label="Active"
-                            hint="Inactive roles cannot be assigned to users" persistent-hint class="mb-4"
-                            :disabled="editingRole && editingRole.is_system"></v-switch>
-
-                        <!-- Permissions Section -->
-                        <v-divider class="my-4"></v-divider>
-                        <div class="mb-2">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div>
-                                    <h3 class="text-h6 mb-1">Permissions</h3>
-                                    <p class="text-caption text-grey">Select permissions to assign to this role</p>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <v-btn size="small" variant="outlined" @click="selectAllPermissions"
-                                        color="primary">
-                                        Select All
-                                    </v-btn>
-                                    <v-btn size="small" variant="outlined" @click="deselectAllPermissions" color="grey">
-                                        Deselect All
-                                    </v-btn>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Search Filter -->
-                        <v-text-field v-model="permissionSearch" label="Search permissions"
-                            prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable
-                            class="mb-4"></v-text-field>
-
-                        <!-- Permissions List - All Expanded -->
-                        <div v-if="Object.keys(filteredGroupedPermissions).length > 0"
-                            class="permissions-container mb-4">
-                            <div v-for="(permissions, group) in filteredGroupedPermissions" :key="group"
-                                class="permission-group mb-4">
-                                <v-card variant="outlined">
-                                    <v-card-title class="d-flex justify-space-between align-center py-2">
-                                        <div class="d-flex align-center gap-2">
-                                            <span class="text-h6">{{ group.charAt(0).toUpperCase() + group.slice(1)
-                                            }}</span>
-                                            <v-chip size="small" color="primary" variant="flat">
-                                                {{ getSelectedCountInGroup(group) }} / {{ permissions.length }} selected
-                                            </v-chip>
-                                        </div>
-                                        <div class="d-flex gap-1">
-                                            <v-btn size="x-small" variant="text" @click="selectAllInGroup(group)"
-                                                color="primary">
-                                                Select All
-                                            </v-btn>
-                                            <v-btn size="x-small" variant="text" @click="deselectAllInGroup(group)"
-                                                color="grey">
-                                                Clear
-                                            </v-btn>
-                                        </div>
-                                    </v-card-title>
-                                    <v-card-text>
-                                        <v-row v-if="Array.isArray(permissions)">
-                                            <v-col v-for="permission in permissions" :key="permission.id" cols="12"
-                                                md="6" lg="4">
-                                                <v-checkbox :model-value="isFormPermissionSelected(permission.id)"
-                                                    @update:model-value="toggleFormPermission(permission.id)"
-                                                    :label="permission.name" :hint="permission.description"
-                                                    persistent-hint density="comfortable" color="primary">
-                                                    <template v-slot:label>
-                                                        <div>
-                                                            <div class="font-weight-medium">{{ permission.name }}</div>
-                                                            <div v-if="permission.description"
-                                                                class="text-caption text-grey">
-                                                                {{ permission.description }}
-                                                            </div>
-                                                        </div>
-                                                    </template>
-                                                </v-checkbox>
-                                            </v-col>
-                                        </v-row>
-                                    </v-card-text>
-                                </v-card>
-                            </div>
-                        </div>
-                        <v-alert v-else type="info" variant="tonal" class="mb-4">
-                            <div v-if="permissionSearch">
-                                No permissions found matching "{{ permissionSearch }}"
-                            </div>
-                            <div v-else>
-                                No permissions available. Please ensure permissions are loaded.
-                            </div>
-                        </v-alert>
-                    </v-form>
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="closeDialog" variant="text">Cancel</v-btn>
-                    <v-btn v-if="editingRole && editingRole.is_system" @click="closeDialog" color="primary">
-                        Close
-                    </v-btn>
-                    <v-btn v-else @click="saveRole" color="primary" :loading="saving">
-                        {{ editingRole ? 'Update' : 'Create' }}
-                    </v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <RoleDialog v-model="dialog" :role="editingRole" :grouped-permissions="groupedPermissions"
+            @save="onRoleSaved" />
 
         <!-- Permissions Dialog -->
-        <v-dialog v-model="permissionDialog" max-width="800" persistent>
-            <v-card>
-                <v-card-title>
-                    Manage Permissions - {{ selectedRole?.name }}
-                    <v-chip v-if="selectedRole?.is_system" color="warning" size="small" class="ml-2">
-                        System Role
-                    </v-chip>
-                </v-card-title>
-                <v-card-text>
-                    <div v-if="loadingPermissions" class="text-center py-4">
-                        <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                    </div>
-                    <div v-else>
-                        <div v-if="Object.keys(safeGroupedPermissions).length === 0" class="text-center py-4">
-                            <p class="text-grey">No permissions available</p>
-                        </div>
-                        <div v-else>
-                            <div v-for="(permissions, group) in safeGroupedPermissions" :key="group" class="mb-6">
-                                <h3 class="text-h6 mb-3">{{ group.charAt(0).toUpperCase() + group.slice(1) }}</h3>
-                                <v-row v-if="Array.isArray(permissions)">
-                                    <v-col v-for="permission in permissions" :key="permission.id" cols="12" md="6">
-                                        <v-checkbox :model-value="isPermissionSelected(permission.id)"
-                                            @update:model-value="togglePermission(permission.id)"
-                                            :label="permission.name" :hint="permission.description" persistent-hint
-                                            density="compact"></v-checkbox>
-                                    </v-col>
-                                </v-row>
-                                <v-alert v-else type="warning" variant="tonal" class="mt-2">
-                                    Invalid permission group structure
-                                </v-alert>
-                            </div>
-                        </div>
-                    </div>
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="closePermissionDialog" variant="text">Cancel</v-btn>
-                    <v-btn @click="savePermissions" color="primary" :loading="savingPermissions">
-                        Save Permissions
-                    </v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <RolePermissionsDialog v-model="permissionDialog" :role="selectedRole" :grouped-permissions="groupedPermissions"
+            @save="onPermissionsSaved" />
     </div>
 </template>
 
@@ -358,11 +191,15 @@
 
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
+import RoleDialog from './dialogs/RoleDialog.vue';
+import RolePermissionsDialog from './dialogs/RolePermissionsDialog.vue';
 import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
     components: {
-        PaginationControls
+        PaginationControls,
+        RoleDialog,
+        RolePermissionsDialog
     },
     mixins: [commonMixin],
     data() {
@@ -388,15 +225,6 @@ export default {
             // Role selected for permission management in separate dialog
             selectedRole: null,
 
-            // Loading state for permissions fetch
-            loadingPermissions: false,
-
-            // Loading state for saving permissions
-            savingPermissions: false,
-
-            // Array of permission IDs selected in the separate permissions dialog
-            selectedPermissions: [],
-
             // Filter for active/inactive roles (null = all roles)
             activeFilter: null,
 
@@ -405,27 +233,6 @@ export default {
                 { title: 'Active', value: true },
                 { title: 'Inactive', value: false }
             ],
-
-            // Form data for role create/edit
-            form: {
-                name: '',              // Role display name
-                slug: '',              // URL-friendly identifier (auto-generated if empty)
-                description: '',       // Role description
-                is_active: true,       // Whether role is active
-                order: 0,              // Display order
-                permissions: []        // Array of permission IDs assigned to this role
-            },
-
-            // Search query for filtering permissions in the role dialog
-            permissionSearch: '',
-
-            // Form validation rules
-            rules: {
-                required: value => !!value || 'This field is required'
-            },
-
-            // Flag to prevent infinite loop when auto-generating slug
-            autoGeneratingSlug: false,
             // Pagination state - using centralized defaults
             currentPage: defaultPaginationState.currentPage,
             perPage: defaultPaginationState.perPage,
@@ -433,72 +240,7 @@ export default {
             pagination: { ...defaultPaginationState.pagination },
         };
     },
-    computed: {
-        /**
-         * Safe grouped permissions getter
-         * 
-         * Ensures groupedPermissions is always a valid object with array values.
-         * Filters out any invalid data structures to prevent iteration errors.
-         * 
-         * @returns {Object} Object with group names as keys and permission arrays as values
-         */
-        safeGroupedPermissions() {
-            // Ensure groupedPermissions is always an object
-            if (!this.groupedPermissions || typeof this.groupedPermissions !== 'object') {
-                return {};
-            }
-
-            // Filter out any non-array values (safety check)
-            const safe = {};
-            Object.keys(this.groupedPermissions).forEach(key => {
-                if (Array.isArray(this.groupedPermissions[key])) {
-                    safe[key] = this.groupedPermissions[key];
-                }
-            });
-            return safe;
-        },
-
-        /**
-         * Filtered grouped permissions based on search query
-         * 
-         * Filters permissions by name, description, or slug when user types in search box.
-         * Returns only groups that have matching permissions.
-         * 
-         * @returns {Object} Filtered grouped permissions object
-         */
-        filteredGroupedPermissions() {
-            // If no search query, return all permissions
-            if (!this.permissionSearch) {
-                return this.safeGroupedPermissions;
-            }
-
-            // Convert search to lowercase for case-insensitive matching
-            const search = this.permissionSearch.toLowerCase();
-            const filtered = {};
-
-            // Iterate through each permission group
-            Object.keys(this.safeGroupedPermissions).forEach(group => {
-                const permissions = this.safeGroupedPermissions[group];
-                if (Array.isArray(permissions)) {
-                    // Filter permissions that match the search query
-                    const filteredPermissions = permissions.filter(permission => {
-                        const name = (permission.name || '').toLowerCase();
-                        const description = (permission.description || '').toLowerCase();
-                        const slug = (permission.slug || '').toLowerCase();
-                        // Match if search term appears in name, description, or slug
-                        return name.includes(search) || description.includes(search) || slug.includes(search);
-                    });
-
-                    // Only include group if it has matching permissions
-                    if (filteredPermissions.length > 0) {
-                        filtered[group] = filteredPermissions;
-                    }
-                }
-            });
-
-            return filtered;
-        }
-    },
+    computed: {},
     /**
      * Component lifecycle hook - runs when component is mounted
      * Loads initial data (roles and permissions)
@@ -650,226 +392,22 @@ export default {
          * Open role create/edit dialog
          * 
          * @param {Object|null} role - Role object to edit, or null to create new role
-         * 
-         * If editing:
-         * - Loads role data into form
-         * - Fetches role permissions if not already loaded
-         * - Disables certain fields for system roles
-         * 
-         * If creating:
-         * - Resets form to default values
-         * - Allows full editing
          */
         async openDialog(role) {
             // Ensure permissions are loaded before opening dialog
-            // This is important so all permissions are available for selection
             if (Object.keys(this.groupedPermissions).length === 0) {
                 await this.loadPermissions();
             }
 
-            if (role) {
-                // Editing existing role
-                this.editingRole = role;
-                // Load full role data if permissions are not loaded
-                let rolePermissions = [];
-                if (role.permissions) {
-                    // Handle both array of objects and array of IDs
-                    rolePermissions = role.permissions.map(p => {
-                        if (typeof p === 'object' && p.id) {
-                            return p.id;
-                        }
-                        return p;
-                    });
-                } else {
-                    // Try to fetch role with permissions if not included
-                    try {
-                        const response = await this.$axios.get(`/api/v1/roles/${role.id}`, {
-                            headers: this.getAuthHeaders()
-                        });
-                        if (response.data && response.data.permissions) {
-                            rolePermissions = response.data.permissions.map(p => {
-                                if (typeof p === 'object' && p.id) {
-                                    return p.id;
-                                }
-                                return p;
-                            });
-                        }
-                    } catch (error) {
-                        console.warn('Could not load role permissions:', error);
-                    }
-                }
-
-                this.form = {
-                    name: role.name,
-                    slug: role.slug,
-                    description: role.description || '',
-                    is_active: role.is_active,
-                    order: role.order || 0,
-                    permissions: rolePermissions
-                };
-            } else {
-                this.editingRole = null;
-                this.form = {
-                    name: '',
-                    slug: '',
-                    description: '',
-                    is_active: true,
-                    order: 0,
-                    permissions: []
-                };
-            }
+            this.editingRole = role;
             this.dialog = true;
         },
         /**
-         * Close role create/edit dialog
-         * 
-         * Resets all form data, clears search, and resets form validation.
-         * Called when user cancels or after successful save.
+         * Handle role saved event from RoleDialog
          */
-        closeDialog() {
-            this.dialog = false;
+        async onRoleSaved() {
             this.editingRole = null;
-            this.permissionSearch = '';  // Clear permission search
-            this.form = {
-                name: '',
-                slug: '',
-                description: '',
-                is_active: true,
-                order: 0,
-                permissions: []
-            };
-            // Reset form validation errors
-            if (this.$refs.roleForm) {
-                this.$refs.roleForm.resetValidation();
-            }
-        },
-
-        /**
-         * Auto-generate slug from role name
-         * 
-         * Converts role name to URL-friendly slug format.
-         * Only runs when creating new role (not editing) and slug is empty.
-         * 
-         * Example: "Admin User" -> "admin-user"
-         */
-        autoGenerateSlugFromName() {
-            // Auto-generate slug from name if slug is empty and user is not editing slug
-            // Only for new roles (not when editing existing role)
-            if (!this.form.slug && this.form.name && !this.editingRole) {
-                this.form.slug = this.form.name
-                    .toLowerCase()                    // Convert to lowercase
-                    .replace(/[^a-z0-9]+/g, '-')     // Replace non-alphanumeric with hyphens
-                    .replace(/^-+|-+$/g, '');        // Remove leading/trailing hyphens
-            }
-        },
-
-        /**
-         * Save role (create or update)
-         * 
-         * Validates form, auto-generates slug if needed, and sends data to API.
-         * Includes permissions array in the request.
-         * 
-         * For editing:
-         * - Only sends slug if it changed
-         * - System roles cannot be edited (handled by disabled fields)
-         * 
-         * For creating:
-         * - Sends all form data including permissions
-         * - Backend will generate slug if not provided
-         */
-        async saveRole() {
-            // Validate form first
-            if (!this.$refs.roleForm) {
-                this.showError('Form reference not found');
-                return;
-            }
-
-            if (!this.$refs.roleForm.validate()) {
-                return;
-            }
-
-            // Auto-generate slug if empty
-            if (!this.form.slug && this.form.name) {
-                this.form.slug = this.form.name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '-')
-                    .replace(/^-+|-+$/g, '');
-            }
-
-            this.saving = true;
-            try {
-                const url = this.editingRole
-                    ? `/api/v1/roles/${this.editingRole.id}`
-                    : '/api/v1/roles';
-
-                const method = this.editingRole ? 'put' : 'post';
-
-                // Prepare data - ensure boolean and integer values are properly formatted
-                const data = {
-                    name: this.form.name.trim(),
-                    description: this.form.description ? this.form.description.trim() : null,
-                    is_active: this.form.is_active === true || this.form.is_active === 'true' || this.form.is_active === 1,
-                    order: parseInt(this.form.order) || 0
-                };
-
-                // Handle slug
-                if (this.editingRole) {
-                    // When editing, only send slug if it changed or is empty
-                    if (this.form.slug !== this.editingRole.slug) {
-                        if (this.form.slug && this.form.slug.trim()) {
-                            data.slug = this.form.slug.trim();
-                        } else {
-                            // Send empty string to trigger regeneration
-                            data.slug = '';
-                        }
-                    }
-                    // If slug didn't change, don't send it (backend keeps existing)
-                } else {
-                    // When creating, send slug if provided, otherwise omit (backend will generate)
-                    if (this.form.slug && this.form.slug.trim()) {
-                        data.slug = this.form.slug.trim();
-                    }
-                }
-
-                // Include permissions in the request
-                if (this.form.permissions && Array.isArray(this.form.permissions)) {
-                    data.permissions = this.form.permissions;
-                }
-
-                await this.$axios[method](url, data, {
-                    headers: this.getAuthHeaders()
-                });
-
-                this.showSuccess(
-                    this.editingRole ? 'Role updated successfully' : 'Role created successfully'
-                );
-                this.closeDialog();
-                await this.loadRoles();
-            } catch (error) {
-                console.error('Error saving role:', error);
-                console.error('Error response:', error.response);
-                let message = 'Error saving role';
-
-                if (error.response?.data?.errors) {
-                    // Handle validation errors
-                    const errors = error.response.data.errors;
-                    const errorMessages = [];
-                    Object.keys(errors).forEach(key => {
-                        if (Array.isArray(errors[key])) {
-                            errorMessages.push(`${key}: ${errors[key][0]}`);
-                        } else {
-                            errorMessages.push(`${key}: ${errors[key]}`);
-                        }
-                    });
-                    message = errorMessages.join('\n');
-                } else if (error.response?.data?.message) {
-                    message = error.response.data.message;
-                }
-
-                this.handleApiError(error, 'Error saving role');
-            } finally {
-                this.saving = false;
-            }
+            await this.loadRoles();
         },
         /**
          * Delete a role
@@ -907,123 +445,21 @@ export default {
          * Open separate permissions management dialog
          * 
          * @param {Object} role - Role to manage permissions for
-         * 
-         * This opens a dedicated dialog for managing permissions separately
-         * from the role create/edit dialog.
          */
         async openPermissionDialog(role) {
+            // Ensure permissions are loaded before opening dialog
+            if (Object.keys(this.groupedPermissions).length === 0) {
+                await this.loadPermissions();
+            }
             this.selectedRole = role;
-            // Extract permission IDs from role object
-            // Handle both object format {id: 1, name: '...'} and ID format
-            this.selectedPermissions = role.permissions ? role.permissions.map(p => p.id || p) : [];
             this.permissionDialog = true;
         },
-
         /**
-         * Close permissions management dialog
-         * 
-         * Clears selected role and permissions.
+         * Handle permissions saved event from RolePermissionsDialog
          */
-        closePermissionDialog() {
-            this.permissionDialog = false;
+        async onPermissionsSaved() {
             this.selectedRole = null;
-            this.selectedPermissions = [];
-        },
-
-        /**
-         * Check if a permission is selected in the separate permissions dialog
-         * 
-         * @param {number} permissionId - Permission ID to check
-         * @returns {boolean} True if permission is selected
-         */
-        isPermissionSelected(permissionId) {
-            return this.selectedPermissions.includes(permissionId);
-        },
-
-        /**
-         * Toggle permission selection in separate permissions dialog
-         * 
-         * @param {number} permissionId - Permission ID to toggle
-         */
-        togglePermission(permissionId) {
-            const index = this.selectedPermissions.indexOf(permissionId);
-            if (index > -1) {
-                // Remove if already selected
-                this.selectedPermissions.splice(index, 1);
-            } else {
-                // Add if not selected
-                this.selectedPermissions.push(permissionId);
-            }
-        },
-        // Form permission methods (for role dialog)
-        isFormPermissionSelected(permissionId) {
-            return this.form.permissions.includes(permissionId);
-        },
-        toggleFormPermission(permissionId) {
-            const index = this.form.permissions.indexOf(permissionId);
-            if (index > -1) {
-                this.form.permissions.splice(index, 1);
-            } else {
-                this.form.permissions.push(permissionId);
-            }
-        },
-        getSelectedCountInGroup(group) {
-            const permissions = this.filteredGroupedPermissions[group] || this.safeGroupedPermissions[group];
-            if (!permissions || !Array.isArray(permissions)) {
-                return 0;
-            }
-            return permissions.filter(p => this.form.permissions.includes(p.id)).length;
-        },
-        selectAllPermissions() {
-            this.permissions.forEach(permission => {
-                if (!this.form.permissions.includes(permission.id)) {
-                    this.form.permissions.push(permission.id);
-                }
-            });
-        },
-        deselectAllPermissions() {
-            this.form.permissions = [];
-        },
-        selectAllInGroup(group) {
-            const permissions = this.filteredGroupedPermissions[group] || this.safeGroupedPermissions[group];
-            if (permissions && Array.isArray(permissions)) {
-                permissions.forEach(permission => {
-                    if (!this.form.permissions.includes(permission.id)) {
-                        this.form.permissions.push(permission.id);
-                    }
-                });
-            }
-        },
-        deselectAllInGroup(group) {
-            const permissions = this.filteredGroupedPermissions[group] || this.safeGroupedPermissions[group];
-            if (permissions && Array.isArray(permissions)) {
-                const permissionIds = permissions.map(p => p.id);
-                this.form.permissions = this.form.permissions.filter(id => !permissionIds.includes(id));
-            }
-        },
-        /**
-         * Save permissions for a role (from separate permissions dialog)
-         * 
-         * Updates role permissions via API endpoint.
-         * Called when user clicks "Save Permissions" in the permissions dialog.
-         */
-        async savePermissions() {
-            this.savingPermissions = true;
-            try {
-                await this.$axios.put(`/api/v1/roles/${this.selectedRole.id}/permissions`, {
-                    permissions: this.selectedPermissions
-                }, {
-                    headers: this.getAuthHeaders()
-                });
-
-                this.showSuccess('Permissions updated successfully');
-                this.closePermissionDialog();
-                await this.loadRoles();  // Refresh roles list to show updated permissions
-            } catch (error) {
-                this.handleApiError(error, 'Error saving permissions');
-            } finally {
-                this.savingPermissions = false;
-            }
+            await this.loadRoles();
         },
 
         buildPaginationParams(additionalParams = {}) {
@@ -1075,36 +511,6 @@ export default {
 </script>
 
 <style scoped>
-/* Permissions Container Styles */
-.permissions-container {
-    max-height: 600px;
-    overflow-y: auto;
-    padding-right: 8px;
-}
-
-.permission-group {
-    margin-bottom: 16px;
-}
-
-/* Custom scrollbar for permissions container */
-.permissions-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.permissions-container::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.permissions-container::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-.permissions-container::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
 .sortable {
     cursor: pointer;
     user-select: none;

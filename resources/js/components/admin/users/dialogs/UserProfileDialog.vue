@@ -1,12 +1,13 @@
 <template>
-    <v-dialog v-model="dialog" max-width="700" scrollable persistent>
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="700"
+        scrollable persistent>
         <v-card>
             <v-card-title class="d-flex align-center justify-space-between bg-primary text-white pa-4">
                 <span class="text-h5 font-weight-bold">
                     <v-icon class="mr-2">mdi-account</v-icon>
                     User Profile
                 </span>
-                <v-btn icon="mdi-close" variant="text" color="white" @click="closeDialog"></v-btn>
+                <v-btn icon="mdi-close" variant="text" color="white" @click="close"></v-btn>
             </v-card-title>
 
             <v-card-text class="pa-0">
@@ -70,7 +71,8 @@
                             <v-list-item-subtitle>{{ formatGender(user.gender) }}</v-list-item-subtitle>
                         </v-list-item>
 
-                        <v-list-item v-if="user.address || user.city || user.state || user.country || user.postal_code">
+                        <v-list-item
+                            v-if="user.address || user.city || user.state || user.country || user.postal_code">
                             <template v-slot:prepend>
                                 <v-icon color="primary">mdi-map-marker</v-icon>
                             </template>
@@ -95,7 +97,8 @@
                             <v-list-item-title>Assigned Roles</v-list-item-title>
                             <v-list-item-subtitle>
                                 <div class="d-flex flex-wrap gap-2 mt-2">
-                                    <v-chip v-for="role in userRoles" :key="role.id" size="small" color="primary" variant="outlined">
+                                    <v-chip v-for="role in userRoles" :key="role.id" size="small" color="primary"
+                                        variant="outlined">
                                         {{ role.name }}
                                     </v-chip>
                                 </div>
@@ -109,7 +112,8 @@
                             <v-list-item-title>Permissions</v-list-item-title>
                             <v-list-item-subtitle>
                                 <div class="d-flex flex-wrap gap-2 mt-2">
-                                    <v-chip v-for="permission in userPermissions" :key="permission" size="small" color="success" variant="outlined">
+                                    <v-chip v-for="permission in userPermissions" :key="permission" size="small"
+                                        color="success" variant="outlined">
                                         {{ permission }}
                                     </v-chip>
                                 </div>
@@ -145,7 +149,7 @@
 
             <v-card-actions class="pa-4 bg-grey-lighten-4">
                 <v-spacer></v-spacer>
-                <v-btn color="primary" variant="flat" @click="closeDialog">
+                <v-btn color="primary" variant="flat" @click="close">
                     Close
                 </v-btn>
             </v-card-actions>
@@ -155,7 +159,7 @@
 
 <script>
 import moment from 'moment';
-import { resolveUploadUrl } from '../../../utils/uploads';
+import { resolveUploadUrl } from '../../../../utils/uploads';
 
 export default {
     name: 'UserProfileDialog',
@@ -176,14 +180,6 @@ export default {
         };
     },
     computed: {
-        dialog: {
-            get() {
-                return this.modelValue;
-            },
-            set(value) {
-                this.$emit('update:modelValue', value);
-            }
-        },
         resolvedAvatar() {
             if (!this.user || !this.user.avatar) return null;
             return this.resolveImageUrl(this.user.avatar);
@@ -193,7 +189,7 @@ export default {
         },
         userPermissions() {
             if (!this.user || !this.userRoles || this.userRoles.length === 0) return [];
-            
+
             const permissions = [];
             this.userRoles.forEach(role => {
                 if (role.permissions && role.permissions.length > 0) {
@@ -208,8 +204,8 @@ export default {
         }
     },
     methods: {
-        closeDialog() {
-            this.dialog = false;
+        close() {
+            this.$emit('update:modelValue', false);
         },
         resolveImageUrl(imageValue) {
             return resolveUploadUrl(imageValue);
