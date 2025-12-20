@@ -103,7 +103,7 @@ class PurchaseController extends Controller
         $totalAmount = $subtotal + $totalTax + $shippingCost - $totalDiscount;
         $paidAmount = min($validated['paid_amount'] ?? 0, $totalAmount);
         $balanceAmount = max($totalAmount - $paidAmount, 0);
-        $status = $balanceAmount <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'pending');
+        $status = $balanceAmount <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'draft');
 
         $purchase = DB::transaction(function () use ($validated, $subtotal, $totalTax, $totalDiscount, $shippingCost, $totalAmount, $paidAmount, $balanceAmount, $status) {
             $invoiceNumber = 'INV-P-' . strtoupper(Str::random(6));
@@ -115,8 +115,8 @@ class PurchaseController extends Controller
                 'invoice_number' => $invoiceNumber,
                 'supplier_id' => $validated['supplier_id'],
                 'warehouse_id' => $validated['warehouse_id'],
-            'invoice_date' => $validated['invoice_date'],
-            'due_date' => $validated['due_date'] ?? null,
+                'invoice_date' => $validated['invoice_date'],
+                'due_date' => $validated['due_date'] ?? null,
                 'status' => $status,
                 'subtotal' => $subtotal,
                 'tax_amount' => $totalTax,
@@ -254,63 +254,155 @@ class PurchaseController extends Controller
             'shipping_cost' => 'nullable|numeric|min:0',
         ]);
 
-        // Update items if provided
-        if (isset($validated['items'])) {
-            $purchase->items()->delete();
-            
-            $subtotal = 0;
-            $totalTax = 0;
-            $totalDiscount = 0;
+        return DB::transaction(function () use ($purchase, $validated) {
+            $oldItems = $purchase->items()->get();
+            $oldWarehouseId = $purchase->warehouse_id;
+            $newWarehouseId = $validated['warehouse_id'] ?? $purchase->warehouse_id;
 
-            foreach ($validated['items'] as $item) {
-                $itemTotal = ($item['quantity'] * $item['unit_price']) - ($item['discount'] ?? 0);
-                $subtotal += $itemTotal;
-                $totalTax += $item['tax'] ?? 0;
-                $totalDiscount += $item['discount'] ?? 0;
+            // Reverse stock from old items
+            foreach ($oldItems as $oldItem) {
+                $oldStock = Stock::where('product_id', $oldItem->product_id)
+                    ->where('warehouse_id', $oldWarehouseId)
+                    ->lockForUpdate()
+                    ->first();
 
-                $itemTotalWithTax = $itemTotal + ($item['tax'] ?? 0);
-                $purchase->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'discount' => $item['discount'] ?? 0,
-                    'tax' => $item['tax'] ?? 0,
-                    'total' => $itemTotalWithTax,
-                    'notes' => $item['notes'] ?? null,
-                ]);
+                if ($oldStock) {
+                    $oldQty = $oldStock->quantity;
+                    $newQty = max(0, $oldQty - $oldItem->quantity);
+                    $oldValue = $oldStock->total_value;
+                    $newValue = max(0, $oldValue - ($oldItem->quantity * $oldItem->unit_price));
+                    $avgCost = $newQty > 0 ? $newValue / $newQty : ($oldStock->average_cost ?? 0);
+
+                    $oldStock->update([
+                        'quantity' => $newQty,
+                        'average_cost' => $avgCost,
+                        'total_value' => $newValue,
+                    ]);
+                }
+
+                // Delete old stock ledger entries for this purchase item
+                StockLedger::where('reference_type', 'purchase')
+                    ->where('reference_id', $purchase->id)
+                    ->where('product_id', $oldItem->product_id)
+                    ->delete();
             }
 
-            $purchase->subtotal = $subtotal;
-            $purchase->tax_amount = $totalTax;
-            $purchase->discount_amount = $totalDiscount;
-            $purchase->total_amount = $subtotal + $totalTax + ($validated['shipping_cost'] ?? $purchase->shipping_cost) - $totalDiscount;
-        }
+            // Delete old items
+            $purchase->items()->delete();
 
-        if (isset($validated['supplier_id'])) {
-            $purchase->supplier_id = $validated['supplier_id'];
-        }
-        if (isset($validated['warehouse_id'])) {
-            $purchase->warehouse_id = $validated['warehouse_id'];
-        }
-        if (isset($validated['invoice_date'])) {
-            $purchase->invoice_date = $validated['invoice_date'];
-        }
-        if (isset($validated['due_date'])) {
-            $purchase->due_date = $validated['due_date'];
-        }
-        if (isset($validated['notes'])) {
-            $purchase->notes = $validated['notes'];
-        }
-        if (isset($validated['shipping_cost'])) {
-            $purchase->shipping_cost = $validated['shipping_cost'];
-            $purchase->total_amount = $purchase->subtotal + $purchase->tax_amount + $validated['shipping_cost'] - $purchase->discount_amount;
-        }
+            // Update items if provided
+            if (isset($validated['items'])) {
+                $subtotal = 0;
+                $totalTax = 0;
+                $totalDiscount = 0;
 
-        $purchase->balance_amount = $purchase->total_amount - $purchase->paid_amount;
-        $purchase->save();
-        $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
-        
-        return response()->json($purchase);
+                foreach ($validated['items'] as $item) {
+                    $lineSubtotal = $item['quantity'] * $item['unit_price'];
+                    $lineDiscount = $item['discount'] ?? 0;
+                    $lineTax = $item['tax'] ?? 0;
+                    $itemTotal = $lineSubtotal - $lineDiscount + $lineTax;
+                    
+                    $subtotal += $lineSubtotal;
+                    $totalTax += $lineTax;
+                    $totalDiscount += $lineDiscount;
+
+                    $purchaseItem = $purchase->items()->create([
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'discount' => $lineDiscount,
+                        'tax' => $lineTax,
+                        'total' => $itemTotal,
+                        'notes' => $item['notes'] ?? null,
+                    ]);
+
+                    // Update stock for new items
+                    $stock = Stock::where('product_id', $purchaseItem->product_id)
+                        ->where('warehouse_id', $newWarehouseId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($stock) {
+                        $oldQty = $stock->quantity;
+                        $newQty = $oldQty + $purchaseItem->quantity;
+                        $oldValue = $stock->total_value;
+                        $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
+                        $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
+
+                        $stock->update([
+                            'quantity' => $newQty,
+                            'average_cost' => $avgCost,
+                            'total_value' => $newValue,
+                        ]);
+                        $balanceAfter = $newQty;
+                        $valueBefore = $oldValue;
+                        $valueAfter = $newValue;
+                    } else {
+                        $stock = Stock::create([
+                            'product_id' => $purchaseItem->product_id,
+                            'warehouse_id' => $newWarehouseId,
+                            'quantity' => $purchaseItem->quantity,
+                            'average_cost' => $purchaseItem->unit_price,
+                            'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                        ]);
+                        $balanceAfter = $purchaseItem->quantity;
+                        $valueBefore = 0;
+                        $valueAfter = $stock->total_value;
+                        $avgCost = $purchaseItem->unit_price;
+                    }
+
+                    // Create stock ledger entry
+                    StockLedger::create([
+                        'product_id' => $purchaseItem->product_id,
+                        'warehouse_id' => $newWarehouseId,
+                        'type' => 'in',
+                        'reference_type' => 'purchase',
+                        'reference_id' => $purchase->id,
+                        'reference_number' => $purchase->invoice_number,
+                        'quantity' => $purchaseItem->quantity,
+                        'unit_cost' => $purchaseItem->unit_price,
+                        'weighted_avg_cost' => $avgCost,
+                        'total_cost' => $purchaseItem->total,
+                        'balance_after' => $balanceAfter,
+                        'value_before' => $valueBefore,
+                        'value_after' => $valueAfter,
+                        'created_by' => auth()->id(),
+                        'transaction_date' => $validated['invoice_date'] ?? $purchase->invoice_date,
+                    ]);
+                }
+
+                $purchase->subtotal = $subtotal;
+                $purchase->tax_amount = $totalTax;
+                $purchase->discount_amount = $totalDiscount;
+                $purchase->total_amount = $subtotal + $totalTax + ($validated['shipping_cost'] ?? $purchase->shipping_cost) - $totalDiscount;
+            }
+
+            if (isset($validated['supplier_id'])) {
+                $purchase->supplier_id = $validated['supplier_id'];
+            }
+            if (isset($validated['warehouse_id'])) {
+                $purchase->warehouse_id = $validated['warehouse_id'];
+            }
+            if (isset($validated['invoice_date'])) {
+                $purchase->invoice_date = $validated['invoice_date'];
+            }
+            if (isset($validated['due_date'])) {
+                $purchase->due_date = $validated['due_date'];
+            }
+            if (isset($validated['notes'])) {
+                $purchase->notes = $validated['notes'];
+            }
+            if (isset($validated['shipping_cost'])) {
+                $purchase->shipping_cost = $validated['shipping_cost'];
+                $purchase->total_amount = $purchase->subtotal + $purchase->tax_amount + $validated['shipping_cost'] - $purchase->discount_amount;
+            }
+
+            $purchase->balance_amount = $purchase->total_amount - $purchase->paid_amount;
+            $purchase->save();
+            $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+            
+            return response()->json($purchase);
+        });
     }
 
     public function receive(Request $request, Purchase $purchase)
@@ -324,9 +416,47 @@ class PurchaseController extends Controller
             return response()->json(['message' => 'Only draft purchases can be deleted'], 422);
         }
 
-        $purchase->delete();
-        
-        return response()->json(['message' => 'Purchase deleted successfully']);
+        return DB::transaction(function () use ($purchase) {
+            $items = $purchase->items()->get();
+            $warehouseId = $purchase->warehouse_id;
+
+            // Reverse stock from all items
+            foreach ($items as $item) {
+                $stock = Stock::where('product_id', $item->product_id)
+                    ->where('warehouse_id', $warehouseId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($stock) {
+                    $oldQty = $stock->quantity;
+                    $newQty = max(0, $oldQty - $item->quantity);
+                    $oldValue = $stock->total_value;
+                    $newValue = max(0, $oldValue - ($item->quantity * $item->unit_price));
+                    $avgCost = $newQty > 0 ? $newValue / $newQty : ($stock->average_cost ?? 0);
+
+                    $stock->update([
+                        'quantity' => $newQty,
+                        'average_cost' => $avgCost,
+                        'total_value' => $newValue,
+                    ]);
+                }
+
+                // Delete stock ledger entries for this purchase
+                StockLedger::where('reference_type', 'purchase')
+                    ->where('reference_id', $purchase->id)
+                    ->where('product_id', $item->product_id)
+                    ->delete();
+            }
+
+            // Delete payment records if any
+            Payment::where('reference_type', 'purchase')
+                ->where('reference_id', $purchase->id)
+                ->delete();
+
+            $purchase->delete();
+            
+            return response()->json(['message' => 'Purchase deleted successfully']);
+        });
     }
 }
 

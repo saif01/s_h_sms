@@ -1,9 +1,9 @@
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1000"
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1200px"
         scrollable persistent>
         <v-card>
-            <v-card-title>
-                {{ editingPurchase ? 'Edit Purchase Invoice' : 'New Purchase Invoice' }}
+            <v-card-title class="pa-3 d-flex justify-space-between align-center">
+                <span class="text-h6">{{ editingPurchase ? 'Edit Purchase Invoice' : 'New Purchase Invoice' }}</span>
             </v-card-title>
             <v-card-text class="pa-0">
                 <v-form ref="form" @submit.prevent="handleSave">
@@ -15,38 +15,52 @@
                     <v-window v-model="activeTab">
                         <!-- Basic Information Tab -->
                         <v-window-item value="basic">
-                            <div class="pa-6">
-                                <v-row>
-                                    <v-col cols="12" md="6">
+                            <div class="pa-3">
+                                <v-row dense class="ma-0">
+                                    <v-col cols="12" md="6" class="pa-2">
                                         <v-select v-model="localForm.supplier_id" :items="supplierOptions"
-                                            item-title="label" item-value="value" label="Supplier"
-                                            :rules="[rules.required]" required></v-select>
+                                            item-title="label" item-value="value" label="Supplier" density="compact"
+                                            variant="outlined" hide-details="auto" :rules="[rules.required]"
+                                            required></v-select>
                                     </v-col>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="6" class="pa-2">
                                         <v-select v-model="localForm.warehouse_id" :items="warehouseOptions"
-                                            item-title="label" item-value="value" label="Warehouse"
-                                            :rules="[rules.required]" required></v-select>
+                                            item-title="label" item-value="value" label="Warehouse" density="compact"
+                                            variant="outlined" hide-details="auto" :rules="[rules.required]"
+                                            required></v-select>
                                     </v-col>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="6" class="pa-2">
                                         <v-select v-model="localForm.grn_id" :items="grnOptions" item-title="label"
-                                            item-value="value" label="GRN (Optional)" clearable></v-select>
+                                            item-value="value" label="GRN (Optional)" density="compact"
+                                            variant="outlined" hide-details="auto" clearable></v-select>
                                     </v-col>
-                                    <v-col cols="12" md="6">
-                                        <v-text-field v-model="localForm.invoice_date" label="Invoice Date" type="date"
-                                            :rules="[rules.required]" required></v-text-field>
+                                    <v-col cols="12" md="6" class="pa-2">
+                                        <DatePickerVuetifyInput field-label="Invoice Date" required="true"
+                                            variant="outlined" :initial-date="localForm.invoice_date"
+                                            @trigerInputValue="(val) => { localForm.invoice_date = val; }" />
+                                        <div class="text-caption text-grey mt-1 ml-2">
+                                            <span class="text-error"
+                                                style="font-size: 1.1em; font-weight: bold;">*</span>
+                                            Select the invoice date
+                                        </div>
                                     </v-col>
-                                    <v-col cols="12" md="6">
-                                        <v-text-field v-model="localForm.due_date" label="Due Date"
-                                            type="date"></v-text-field>
+                                    <v-col cols="12" md="6" class="pa-2">
+                                        <DatePickerVuetifyInput field-label="Due Date" variant="outlined"
+                                            :initial-date="localForm.due_date"
+                                            @trigerInputValue="(val) => { localForm.due_date = val; }" />
+                                        <div class="text-caption text-grey mt-1 ml-2">
+                                            Optional: Select payment due date
+                                        </div>
                                     </v-col>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="6" class="pa-2">
                                         <v-text-field v-model.number="localForm.shipping_cost" label="Shipping Cost"
-                                            type="number" min="0" step="0.01" prefix="৳"
+                                            type="number" min="0" step="0.01" prefix="৳" density="compact"
+                                            variant="outlined" hide-details="auto"
                                             @input="calculateTotals"></v-text-field>
                                     </v-col>
-                                    <v-col cols="12">
+                                    <v-col cols="12" class="pa-2">
                                         <v-textarea v-model="localForm.notes" label="Notes" variant="outlined"
-                                            rows="2"></v-textarea>
+                                            density="compact" rows="2" hide-details="auto"></v-textarea>
                                     </v-col>
                                 </v-row>
                             </div>
@@ -54,84 +68,96 @@
 
                         <!-- Items Tab -->
                         <v-window-item value="items">
-                            <div class="pa-6">
+                            <div class="pa-3">
                                 <div class="d-flex justify-space-between align-center mb-2">
-                                    <h3 class="text-h6">Invoice Items</h3>
-                                    <v-btn size="small" color="primary" prepend-icon="mdi-plus"
+                                    <span class="text-body-1 font-weight-medium">Invoice Items</span>
+                                    <v-btn size="small" color="primary" prepend-icon="mdi-plus" density="compact"
                                         @click="addPurchaseItem">Add Item</v-btn>
                                 </div>
-                                <v-table>
+                                <v-table density="compact" class="items-table">
                                     <thead>
                                         <tr>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Unit Price</th>
-                                            <th>Discount</th>
-                                            <th>Tax</th>
-                                            <th>Total</th>
-                                            <th>Actions</th>
+                                            <th class="text-caption">Product</th>
+                                            <th class="text-caption text-center" style="width: 80px;">Qty</th>
+                                            <th class="text-caption text-end" style="width: 100px;">Unit Price</th>
+                                            <th class="text-caption text-end" style="width: 90px;">Discount</th>
+                                            <th class="text-caption text-end" style="width: 90px;">Tax</th>
+                                            <th class="text-caption text-end" style="width: 110px;">Total</th>
+                                            <th class="text-caption" style="width: 50px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="(item, index) in localForm.items" :key="index">
-                                            <td>
-                                                <v-select v-model="item.product_id" :items="productOptions"
-                                                    item-title="label" item-value="value" density="compact"
+                                            <td class="pa-1">
+                                                <v-select v-model="item.product_id" :items="validProductOptions"
+                                                    item-title="label" item-value="value" label="Product"
+                                                    placeholder="Select product" density="compact" variant="outlined"
+                                                    hide-details
+                                                    :menu-props="{ maxHeight: 400, offset: true, attach: 'body' }"
                                                     @update:model-value="calculateItemTotal(index)"
                                                     :rules="[rules.required]"></v-select>
                                             </td>
-                                            <td>
+                                            <td class="pa-1">
                                                 <v-text-field v-model.number="item.quantity" type="number" min="1"
-                                                    density="compact" @input="calculateItemTotal(index)"
+                                                    density="compact" variant="outlined" hide-details
+                                                    @input="calculateItemTotal(index)"
                                                     :rules="[rules.required, rules.minValue]"></v-text-field>
                                             </td>
-                                            <td>
+                                            <td class="pa-1">
                                                 <v-text-field v-model.number="item.unit_price" type="number" min="0"
-                                                    step="0.01" density="compact" @input="calculateItemTotal(index)"
+                                                    step="0.01" density="compact" variant="outlined" hide-details
+                                                    @input="calculateItemTotal(index)"
                                                     :rules="[rules.required]"></v-text-field>
                                             </td>
-                                            <td>
+                                            <td class="pa-1">
                                                 <v-text-field v-model.number="item.discount" type="number" min="0"
-                                                    step="0.01" density="compact"
+                                                    step="0.01" density="compact" variant="outlined" hide-details
                                                     @input="calculateItemTotal(index)"></v-text-field>
                                             </td>
-                                            <td>
+                                            <td class="pa-1">
                                                 <v-text-field v-model.number="item.tax" type="number" min="0"
-                                                    step="0.01" density="compact"
+                                                    step="0.01" density="compact" variant="outlined" hide-details
                                                     @input="calculateItemTotal(index)"></v-text-field>
                                             </td>
-                                            <td>{{ formatCurrency(item.total || 0) }}</td>
-                                            <td>
-                                                <v-btn size="small" icon="mdi-delete" variant="text" color="error"
+                                            <td class="text-body-2 font-weight-medium text-end">{{
+                                                formatCurrency(item.total || 0) }}</td>
+                                            <td class="text-center">
+                                                <v-btn size="x-small" icon="mdi-delete" variant="text" color="error"
                                                     @click="removePurchaseItem(index)"></v-btn>
                                             </td>
                                         </tr>
                                         <tr v-if="localForm.items.length === 0">
-                                            <td colspan="7" class="text-center py-4 text-grey">No items added</td>
+                                            <td colspan="7" class="text-center py-3 text-grey text-caption">No items
+                                                added</td>
                                         </tr>
-                                        <tr v-if="localForm.items.length > 0">
-                                            <td colspan="5" class="text-right font-weight-bold">Subtotal:</td>
-                                            <td class="font-weight-bold">{{ formatCurrency(calculatedSubtotal) }}</td>
+                                        <tr v-if="localForm.items.length > 0" class="summary-row">
+                                            <td colspan="5" class="text-right text-body-2 font-weight-bold">Subtotal:
+                                            </td>
+                                            <td class="text-body-2 font-weight-bold text-end">{{
+                                                formatCurrency(calculatedSubtotal) }}</td>
                                             <td></td>
                                         </tr>
                                         <tr v-if="localForm.items.length > 0">
-                                            <td colspan="5" class="text-right">Tax:</td>
-                                            <td>{{ formatCurrency(calculatedTax) }}</td>
+                                            <td colspan="5" class="text-right text-caption">Tax:</td>
+                                            <td class="text-caption text-end">{{ formatCurrency(calculatedTax) }}</td>
                                             <td></td>
                                         </tr>
                                         <tr v-if="localForm.items.length > 0">
-                                            <td colspan="5" class="text-right">Shipping:</td>
-                                            <td>{{ formatCurrency(localForm.shipping_cost || 0) }}</td>
+                                            <td colspan="5" class="text-right text-caption">Shipping:</td>
+                                            <td class="text-caption text-end">{{ formatCurrency(localForm.shipping_cost
+                                                || 0) }}</td>
                                             <td></td>
                                         </tr>
                                         <tr v-if="localForm.items.length > 0">
-                                            <td colspan="5" class="text-right">Discount:</td>
-                                            <td>{{ formatCurrency(calculatedDiscount) }}</td>
+                                            <td colspan="5" class="text-right text-caption">Discount:</td>
+                                            <td class="text-caption text-end">{{ formatCurrency(calculatedDiscount) }}
+                                            </td>
                                             <td></td>
                                         </tr>
-                                        <tr v-if="localForm.items.length > 0">
-                                            <td colspan="5" class="text-right font-weight-bold">Total:</td>
-                                            <td class="font-weight-bold">{{ formatCurrency(calculatedTotal) }}</td>
+                                        <tr v-if="localForm.items.length > 0" class="total-row">
+                                            <td colspan="5" class="text-right text-body-1 font-weight-bold">Total:</td>
+                                            <td class="text-body-1 font-weight-bold text-end">{{
+                                                formatCurrency(calculatedTotal) }}</td>
                                             <td></td>
                                         </tr>
                                     </tbody>
@@ -141,10 +167,10 @@
                     </v-window>
                 </v-form>
             </v-card-text>
-            <v-card-actions>
+            <v-card-actions class="pa-3">
                 <v-spacer></v-spacer>
-                <v-btn @click="handleCancel" variant="text">Cancel</v-btn>
-                <v-btn @click="handleSave" color="primary" :loading="saving">
+                <v-btn @click="handleCancel" variant="text" density="compact">Cancel</v-btn>
+                <v-btn @click="handleSave" color="primary" :loading="saving" density="compact">
                     {{ editingPurchase ? 'Update' : 'Create' }}
                 </v-btn>
             </v-card-actions>
@@ -153,8 +179,13 @@
 </template>
 
 <script>
+import DatePickerVuetifyInput from '@/components/common/DatePickerVuetifyInput.vue';
+
 export default {
     name: 'PurchaseDialog',
+    components: {
+        DatePickerVuetifyInput,
+    },
     props: {
         modelValue: {
             type: Boolean,
@@ -220,6 +251,13 @@ export default {
         },
         calculatedTotal() {
             return this.calculatedSubtotal + this.calculatedTax + (this.localForm.shipping_cost || 0) - this.calculatedDiscount;
+        },
+        validProductOptions() {
+            // Ensure productOptions is always an array and properly formatted
+            if (!Array.isArray(this.productOptions)) {
+                return [];
+            }
+            return this.productOptions.filter(option => option && option.label && option.value);
         }
     },
     watch: {
@@ -246,8 +284,8 @@ export default {
                 supplier_id: purchase.supplier_id,
                 warehouse_id: purchase.warehouse_id,
                 grn_id: purchase.grn_id,
-                invoice_date: purchase.invoice_date,
-                due_date: purchase.due_date,
+                invoice_date: purchase.invoice_date ? (purchase.invoice_date.includes('T') ? purchase.invoice_date.split('T')[0] : purchase.invoice_date) : new Date().toISOString().split('T')[0],
+                due_date: purchase.due_date ? (purchase.due_date.includes('T') ? purchase.due_date.split('T')[0] : purchase.due_date) : null,
                 shipping_cost: purchase.shipping_cost || 0,
                 notes: purchase.notes || '',
                 items: purchase.items?.map(item => ({
@@ -325,3 +363,26 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.items-table :deep(.v-table__wrapper) {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.items-table :deep(th) {
+    background-color: rgb(var(--v-theme-surface));
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.summary-row {
+    border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.total-row {
+    border-top: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
+    background-color: rgba(var(--v-theme-primary), 0.05);
+}
+</style>
