@@ -189,9 +189,10 @@
                                 </template>
                             </v-list>
                         </v-menu>
-                        <div v-if="pagination.last_page > 1 && perPage !== 'all'" class="d-flex align-center">
+                        <div v-if="pagination.last_page > 1 && perPage !== 'all'" class="pagination-wrapper">
                             <v-pagination v-model="currentPage" :length="pagination.last_page" :total-visible="7"
-                                density="comfortable" @update:model-value="loadCategories">
+                                density="comfortable" @update:model-value="loadCategories" class="pagination-component"
+                                show-first-last-page first-icon="mdi-page-first" last-icon="mdi-page-last">
                             </v-pagination>
                         </div>
                     </div>
@@ -661,14 +662,20 @@ export default {
     text-transform: none;
     letter-spacing: normal;
     font-weight: 400;
-    height: 40px;
-    /* Match pagination height */
+    height: 36px;
+    min-height: 36px;
+    /* Match pagination height for perfect alignment */
     display: flex;
     align-items: center;
+    padding-inline: 12px;
 }
 
 .items-per-page-btn :deep(.v-btn__prepend) {
     margin-inline-end: 8px;
+}
+
+.items-per-page-btn :deep(.v-icon) {
+    font-size: 18px;
 }
 
 /* Ensure pagination and items per page are aligned */
@@ -679,6 +686,48 @@ export default {
 .d-flex.align-center :deep(.v-pagination) {
     display: flex;
     align-items: center;
+}
+
+/* Pagination Wrapper - Align first/last buttons with pagination prev/next */
+.pagination-wrapper {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.pagination-wrapper :deep(.v-pagination) {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Ensure all buttons in pagination wrapper have consistent styling */
+.pagination-wrapper :deep(.v-pagination .v-btn) {
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+}
+
+/* Match icon size in pagination buttons */
+.pagination-wrapper :deep(.v-pagination .v-btn .v-icon) {
+    font-size: 20px;
+}
+
+/* Hover effects to match pagination */
+.pagination-wrapper :deep(.v-pagination .v-btn:not(.v-btn--disabled):hover) {
+    background-color: rgba(var(--v-theme-primary), 0.08);
+}
+
+/* Active/selected state */
+.pagination-wrapper :deep(.v-pagination .v-btn--active) {
+    background-color: rgb(var(--v-theme-primary));
+    color: white;
+}
+
+/* Disabled state to match pagination */
+.pagination-wrapper :deep(.v-pagination .v-btn--disabled) {
+    opacity: 0.38;
+    cursor: not-allowed;
 }
 
 .items-per-page-menu {
