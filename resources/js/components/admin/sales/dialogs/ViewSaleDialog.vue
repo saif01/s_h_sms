@@ -109,13 +109,13 @@
                                     <td class="text-grey text-caption">{{ index + 1 }}</td>
                                     <td>
                                         <div class="text-body-2 font-weight-medium">{{ item.product?.name || 'Unknown'
-                                        }}</div>
+                                            }}</div>
                                         <div v-if="item.product?.sku" class="text-caption text-grey">SKU: {{
                                             item.product.sku }}</div>
                                     </td>
                                     <td class="text-center text-body-2">{{ item.quantity }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.unit_price || 0).toFixed(2)
-                                    }}</td>
+                                        }}</td>
                                     <td class="text-right text-body-2 text-error">-৳{{ parseFloat(item.discount ||
                                         0).toFixed(2) }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.tax || 0).toFixed(2) }}</td>
@@ -160,19 +160,17 @@
                                             parseFloat(saleData.discount_amount).toFixed(2) }}</span>
                                     </div>
 
-                                    <!-- Show Item Tax only if order tax is 0 or empty (matching calculatedTotalTax logic) -->
-                                    <div v-if="calculatedItemsTax > 0 && (!saleData.tax_amount || saleData.tax_amount === 0)"
-                                        class="invoice-totals-row">
+                                    <div v-if="calculatedItemsTax > 0" class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Item Tax:</span>
                                         <span class="invoice-totals-value text-body-2">৳{{ calculatedItemsTax.toFixed(2)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
-                                    <!-- Show Order Tax only if it's > 0 (matching calculatedTotalTax logic) -->
-                                    <div v-if="saleData.tax_amount > 0" class="invoice-totals-row">
+                                    <!-- Only show order tax when it exists separately from item tax -->
+                                    <div v-if="shouldShowOrderTax" class="invoice-totals-row">
                                         <span class="invoice-totals-label text-caption">Order Tax:</span>
                                         <span class="invoice-totals-value text-body-2">৳{{
-                                            parseFloat(saleData.tax_amount).toFixed(2) }}</span>
+                                            orderTaxAmount.toFixed(2) }}</span>
                                     </div>
 
                                     <div v-if="calculatedTotalTax > 0"
@@ -291,17 +289,29 @@ export default {
             if (!this.saleData || !this.saleData.items) return 0;
             return this.saleData.items.reduce((sum, item) => sum + (parseFloat(item.tax || 0)), 0);
         },
+        orderTaxAmount() {
+            return parseFloat(this.saleData?.tax_amount || 0);
+        },
+        shouldShowOrderTax() {
+            const itemsTax = this.calculatedItemsTax;
+            const orderTax = this.orderTaxAmount;
+
+            if (orderTax <= 0) return false;
+
+            // If order tax essentially matches item tax total, treat it as item tax only
+            return !(itemsTax > 0 && Math.abs(orderTax - itemsTax) < 0.01);
+        },
         calculatedTotalTax() {
             const itemsTax = this.calculatedItemsTax;
-            const orderTax = parseFloat(this.saleData?.tax_amount || 0);
+            const orderTax = this.orderTaxAmount;
 
-            // Backend logic: $taxAmount = $validated['tax_amount'] ?? $taxTotal;
-            // Use order tax if provided (> 0), otherwise use items tax
-            // This matches the backend calculation and SaleDialog logic
-            if (orderTax > 0) {
+            // Prefer explicit order tax when it's different from item tax (backend uses order tax field for totals)
+            if (orderTax > 0 && Math.abs(orderTax - itemsTax) >= 0.01) {
                 return orderTax;
             }
-            return itemsTax;
+
+            // If order tax mirrors item tax, treat it as item tax to avoid mislabeling
+            return Math.max(itemsTax, orderTax);
         },
         calculatedTotalAmount() {
             if (!this.saleData) return 0;
