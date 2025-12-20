@@ -121,8 +121,8 @@
                                     </v-chip>
                                 </td>
                                 <td>
-                                    <v-btn size="small" icon="mdi-information" @click="openViewDialog(category)"
-                                        variant="text" color="info" :title="'View Category Details'"></v-btn>
+                                    <v-btn size="small" icon="mdi-eye" @click="openViewDialog(category)" variant="text"
+                                        color="info" :title="'View Category Details'"></v-btn>
                                     <v-btn size="small" icon="mdi-pencil" @click="openDialog(category)" variant="text"
                                         :title="'Edit Category'"></v-btn>
                                     <v-btn size="small" icon="mdi-delete" @click="deleteCategory(category)"

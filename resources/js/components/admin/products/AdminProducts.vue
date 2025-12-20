@@ -333,7 +333,20 @@ export default {
             this.stockDialog = true;
         },
         async deleteProduct(product) {
-            if (!confirm(`Are you sure you want to delete ${product.name}?`)) {
+            // Show SweetAlert confirmation
+            const result = await window.Swal.fire({
+                title: 'Are you sure?',
+                text: `Do you want to delete "${product.name}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+
+            if (!result.isConfirmed) {
                 return;
             }
 
@@ -342,7 +355,15 @@ export default {
                     headers: this.getAuthHeaders()
                 });
 
-                this.showSuccess('Product deleted successfully');
+                // Show success message
+                await window.Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'Product has been deleted successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
                 await this.loadProducts();
             } catch (error) {
                 this.handleApiError(error, 'Error deleting product');
