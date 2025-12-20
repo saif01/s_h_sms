@@ -11,17 +11,22 @@
         <v-card class="mb-4">
             <v-card-text>
                 <v-row>
-                    <v-col cols="12" md="4">
+                    <v-col cols="12" md="3">
                         <v-select v-model="statusFilter" :items="statusOptions" label="Filter by Status"
                             variant="outlined" density="compact" clearable
                             @update:model-value="loadPurchases"></v-select>
                     </v-col>
-                    <v-col cols="12" md="4">
+                    <v-col cols="12" md="3">
                         <v-select v-model="supplierFilter" :items="supplierOptions" label="Filter by Supplier"
                             variant="outlined" density="compact" clearable
                             @update:model-value="loadPurchases"></v-select>
                     </v-col>
-                    <v-col cols="12" md="4">
+                    <v-col cols="12" md="3">
+                        <v-select v-model="warehouseFilter" :items="warehouseOptions" label="Filter by Warehouse"
+                            variant="outlined" density="compact" clearable
+                            @update:model-value="loadPurchases"></v-select>
+                    </v-col>
+                    <v-col cols="12" md="3">
                         <v-text-field v-model="search" label="Search by invoice number" prepend-inner-icon="mdi-magnify"
                             variant="outlined" density="compact" clearable @input="loadPurchases"></v-text-field>
                     </v-col>
@@ -87,27 +92,11 @@
                                     </v-icon>
                                 </div>
                             </th>
-                            <th class="text-end sortable" @click="onSort('paid_amount')">
-                                <div class="sortable-header justify-end">
-                                    <span>Paid</span>
-                                    <v-icon v-if="sortBy === 'paid_amount'" size="18" class="sort-icon active">
-                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
-                                    </v-icon>
-                                    <v-icon v-else size="18" class="sort-icon inactive">
-                                        mdi-unfold-more-horizontal
-                                    </v-icon>
-                                </div>
+                            <th class="text-end">
+                                <span>Paid</span>
                             </th>
-                            <th class="text-end sortable" @click="onSort('balance_amount')">
-                                <div class="sortable-header justify-end">
-                                    <span>Balance</span>
-                                    <v-icon v-if="sortBy === 'balance_amount'" size="18" class="sort-icon active">
-                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
-                                    </v-icon>
-                                    <v-icon v-else size="18" class="sort-icon inactive">
-                                        mdi-unfold-more-horizontal
-                                    </v-icon>
-                                </div>
+                            <th class="text-end">
+                                <span>Balance</span>
                             </th>
                             <th>Actions</th>
                         </tr>
@@ -190,8 +179,8 @@
 
         <!-- Purchase Dialog -->
         <PurchaseDialog v-model="dialog" :editing-purchase="editingPurchase" :supplier-options="supplierOptions"
-            :warehouse-options="warehouseOptions" :product-options="productOptions"
-            :saving="saving" @save="handleSavePurchase" @cancel="closeDialog" />
+            :warehouse-options="warehouseOptions" :product-options="productOptions" :saving="saving"
+            @save="handleSavePurchase" @cancel="closeDialog" />
 
         <!-- View Purchase Dialog -->
         <ViewPurchaseDialog v-model="viewDialog" :purchase="viewingPurchase" />
@@ -230,6 +219,7 @@ export default {
                 { title: 'Cancelled', value: 'cancelled' }
             ],
             supplierFilter: null,
+            warehouseFilter: null,
             dialog: false,
             editingPurchase: null,
             saving: false,
@@ -280,6 +270,9 @@ export default {
                 if (this.supplierFilter) {
                     params.supplier_id = this.supplierFilter;
                 }
+                if (this.warehouseFilter) {
+                    params.warehouse_id = this.warehouseFilter;
+                }
 
                 const response = await this.$axios.get('/api/v1/purchases', {
                     params,
@@ -313,7 +306,10 @@ export default {
                     headers: this.getAuthHeaders()
                 });
                 this.warehouses = response.data.warehouses || [];
-                this.warehouseOptions = this.warehouses;
+                this.warehouseOptions = this.warehouses.map(w => ({
+                    label: w.name,
+                    value: w.id
+                }));
             } catch (error) {
                 console.error('Error loading warehouses:', error);
             }
