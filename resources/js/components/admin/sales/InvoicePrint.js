@@ -52,9 +52,6 @@ export default {
                 calculatedTotalTax = Math.max(itemsTax, orderTax);
             }
 
-            // Determine if order tax should be shown separately
-            const shouldShowOrderTax = orderTax > 0 && !(itemsTax > 0 && Math.abs(orderTax - itemsTax) < 0.01);
-
             // Use backend's total_amount if available (it's already calculated correctly with tax)
             // Backend formula: $totalAmount = $subtotal - $discountAmount + $taxAmount + $shipping;
             let calculatedTotal;
@@ -224,18 +221,6 @@ export default {
                         <div class="totals-row">
                             <span>Order Discount:</span>
                             <span style="color: #f44336;">-৳${orderDiscount.toFixed(2)}</span>
-                        </div>
-                        ` : ''}
-                        ${itemsTax > 0 ? `
-                        <div class="totals-row">
-                            <span>Item Tax:</span>
-                            <span>৳${itemsTax.toFixed(2)}</span>
-                        </div>
-                        ` : ''}
-                        ${shouldShowOrderTax ? `
-                        <div class="totals-row">
-                            <span>Order Tax:</span>
-                            <span>৳${orderTax.toFixed(2)}</span>
                         </div>
                         ` : ''}
                         ${calculatedTotalTax > 0 ? `

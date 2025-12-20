@@ -2,6 +2,11 @@
     <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="900px"
         persistent scrollable>
         <v-card class="invoice-card">
+            <!-- Status Ribbon -->
+            <div v-if="saleData" class="status-ribbon" :class="`status-ribbon-${saleData.status || 'pending'}`">
+                <span class="ribbon-text">{{ (saleData.status || 'pending').toUpperCase() }}</span>
+            </div>
+
             <!-- Header -->
             <v-card-title class="invoice-header d-flex justify-space-between align-center pa-3">
                 <div class="d-flex align-center gap-2">
@@ -58,31 +63,19 @@
                             </v-col>
                         </v-row>
 
-                        <v-row dense class="mt-2">
-                            <v-col cols="12" md="4">
-                                <div class="invoice-meta-item">
-                                    <div class="text-caption text-grey mb-0">Invoice Date</div>
-                                    <div class="text-body-2 font-weight-medium">{{ formatDate(saleData.invoice_date) }}
-                                    </div>
-                                </div>
-                            </v-col>
-                            <v-col cols="12" md="4" v-if="saleData.due_date">
-                                <div class="invoice-meta-item">
-                                    <div class="text-caption text-grey mb-0">Due Date</div>
-                                    <div class="text-body-2 font-weight-medium">{{ formatDate(saleData.due_date) }}
-                                    </div>
-                                </div>
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <div class="invoice-meta-item">
-                                    <div class="text-caption text-grey mb-0">Status</div>
-                                    <v-chip :color="getStatusColor(saleData.status)" size="x-small" variant="flat"
-                                        class="font-weight-medium">
-                                        {{ saleData.status?.toUpperCase() || 'PENDING' }}
-                                    </v-chip>
-                                </div>
-                            </v-col>
-                        </v-row>
+                        <div class="invoice-dates-compact mt-2">
+                            <div class="invoice-date-item">
+                                <v-icon size="16" class="mr-1">mdi-calendar</v-icon>
+                                <span class="text-caption text-grey mr-1">Invoice:</span>
+                                <span class="text-body-2 font-weight-medium">{{ formatDate(saleData.invoice_date)
+                                    }}</span>
+                            </div>
+                            <div v-if="saleData.due_date" class="invoice-date-item">
+                                <v-icon size="16" class="mr-1">mdi-calendar-clock</v-icon>
+                                <span class="text-caption text-grey mr-1">Due:</span>
+                                <span class="text-body-2 font-weight-medium">{{ formatDate(saleData.due_date) }}</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Items Table Section -->
@@ -109,13 +102,13 @@
                                     <td class="text-grey text-caption">{{ index + 1 }}</td>
                                     <td>
                                         <div class="text-body-2 font-weight-medium">{{ item.product?.name || 'Unknown'
-                                            }}</div>
+                                        }}</div>
                                         <div v-if="item.product?.sku" class="text-caption text-grey">SKU: {{
                                             item.product.sku }}</div>
                                     </td>
                                     <td class="text-center text-body-2">{{ item.quantity }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.unit_price || 0).toFixed(2)
-                                        }}</td>
+                                    }}</td>
                                     <td class="text-right text-body-2 text-error">-৳{{ parseFloat(item.discount ||
                                         0).toFixed(2) }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.tax || 0).toFixed(2) }}</td>
@@ -158,19 +151,6 @@
                                         <span class="invoice-totals-label text-caption">Order Discount:</span>
                                         <span class="invoice-totals-value text-body-2 text-error">-৳{{
                                             parseFloat(saleData.discount_amount).toFixed(2) }}</span>
-                                    </div>
-
-                                    <div v-if="calculatedItemsTax > 0" class="invoice-totals-row">
-                                        <span class="invoice-totals-label text-caption">Item Tax:</span>
-                                        <span class="invoice-totals-value text-body-2">৳{{ calculatedItemsTax.toFixed(2)
-                                            }}</span>
-                                    </div>
-
-                                    <!-- Only show order tax when it exists separately from item tax -->
-                                    <div v-if="shouldShowOrderTax" class="invoice-totals-row">
-                                        <span class="invoice-totals-label text-caption">Order Tax:</span>
-                                        <span class="invoice-totals-value text-body-2">৳{{
-                                            orderTaxAmount.toFixed(2) }}</span>
                                     </div>
 
                                     <div v-if="calculatedTotalTax > 0"
@@ -415,6 +395,49 @@ export default {
 <style scoped>
 .invoice-card {
     background: white;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Status Ribbon */
+.status-ribbon {
+    position: absolute;
+    top: 50px;
+    right: -54px;
+    width: 253px;
+    padding: 12px 0;
+    text-align: center;
+    transform: rotate(45deg);
+    z-index: 100;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.ribbon-text {
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.status-ribbon-draft {
+    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+}
+
+.status-ribbon-pending {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.status-ribbon-partial {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+}
+
+.status-ribbon-paid {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+}
+
+.status-ribbon-cancelled {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
 }
 
 .invoice-header {
@@ -447,6 +470,23 @@ export default {
     padding: 8px;
     border-radius: 4px;
     border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.invoice-dates-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(25, 118, 210, 0.03);
+    border-radius: 6px;
+    border: 1px solid rgba(25, 118, 210, 0.1);
+}
+
+.invoice-date-item {
+    display: flex;
+    align-items: center;
+    color: #424242;
 }
 
 .invoice-items-section {
@@ -598,6 +638,40 @@ export default {
         page-break-after: avoid;
     }
 
+    /* Status Ribbon */
+    .status-ribbon {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        position: absolute !important;
+        top: 50px !important;
+        right: -54px !important;
+        width: 253px !important;
+        padding: 12px 0 !important;
+        font-size: 14px !important;
+        transform: rotate(45deg) !important;
+        z-index: 100 !important;
+    }
+
+    .status-ribbon-draft {
+        background: #9e9e9e !important;
+    }
+
+    .status-ribbon-pending {
+        background: #ff9800 !important;
+    }
+
+    .status-ribbon-partial {
+        background: #2196f3 !important;
+    }
+
+    .status-ribbon-paid {
+        background: #4caf50 !important;
+    }
+
+    .status-ribbon-cancelled {
+        background: #f44336 !important;
+    }
+
     /* Hide action buttons and close button */
     .v-card-actions,
     .v-btn,
@@ -658,6 +732,18 @@ export default {
     .invoice-meta-item {
         border: 1px solid #ddd !important;
         box-shadow: none !important;
+    }
+
+    /* Compact dates */
+    .invoice-dates-compact {
+        background: #f5f5f5 !important;
+        border: 1px solid #ddd !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .invoice-date-item {
+        color: #000 !important;
     }
 
     /* Footer */
