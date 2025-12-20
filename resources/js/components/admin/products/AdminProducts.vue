@@ -207,7 +207,7 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import ProductDialog from './dialogs/ProductDialog.vue';
 import PaginationControls from '../../common/PaginationControls.vue';
 
@@ -217,7 +217,7 @@ export default {
         ProductDialog,
         PaginationControls
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             products: [],

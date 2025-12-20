@@ -1,5 +1,5 @@
 /**
- * Admin Pagination Mixin
+ * Common Mixin
  * 
  * Provides common pagination functionality, utilities, and methods
  * for all admin pages to reduce code duplication.
@@ -284,4 +284,5 @@ export default {
         }
     }
 };
+
 

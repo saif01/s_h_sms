@@ -230,7 +230,7 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import { normalizeUploadPath, resolveUploadUrl } from '../../../utils/uploads';
 import PaginationControls from '../../common/PaginationControls.vue';
 
@@ -238,7 +238,7 @@ export default {
     components: {
         PaginationControls
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             categories: [],

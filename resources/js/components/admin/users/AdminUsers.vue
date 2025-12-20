@@ -374,7 +374,7 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import { normalizeUploadPath, resolveUploadUrl } from '../../../utils/uploads';
 import UserProfileDialog from './UserProfileDialog.vue';
 
@@ -382,7 +382,7 @@ export default {
     components: {
         UserProfileDialog
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             users: [],

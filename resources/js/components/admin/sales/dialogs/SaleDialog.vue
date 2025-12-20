@@ -285,11 +285,11 @@
 <script>
 import axios from '@/utils/axios.config';
 import DatePickerVuetifyInput from '@/components/common/DatePickerVuetifyInput.vue';
-import adminPaginationMixin from '@/mixins/adminPaginationMixin';
+import commonMixin from '@/mixins/commonMixin';
 
 export default {
     name: 'SaleDialog',
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     components: {
         DatePickerVuetifyInput,
     },

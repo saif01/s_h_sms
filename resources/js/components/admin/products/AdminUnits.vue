@@ -210,7 +210,7 @@
 
 <script>
 import axios from '@/utils/axios.config';
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
 
 export default {
@@ -218,7 +218,7 @@ export default {
     components: {
         PaginationControls
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             units: [],

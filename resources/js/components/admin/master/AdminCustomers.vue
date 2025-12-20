@@ -129,7 +129,7 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import CustomerDialog from './dialogs/CustomerDialog.vue';
 import CustomerViewDialog from './dialogs/CustomerViewDialog.vue';
 
@@ -138,7 +138,7 @@ export default {
         CustomerDialog,
         CustomerViewDialog
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             customers: [],

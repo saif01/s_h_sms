@@ -12,28 +12,22 @@
             <v-card-text>
                 <v-row>
                     <v-col cols="12" md="3">
-                        <v-select v-model="pagination.per_page" :items="perPageOptions" label="Items per page"
-                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
-                            @update:model-value="onPerPageChange"></v-select>
-                    </v-col>
-
-                    <v-col cols="12" md="2">
-                        <v-select v-model="filters.status" :items="statusOptions" label="Status"
+                        <v-select v-model="filters.status" :items="statusOptions" label="Filter by Status"
                             prepend-inner-icon="mdi-filter" variant="outlined" density="compact" clearable
                             @update:model-value="fetchSales"></v-select>
                     </v-col>
-                    <v-col cols="12" md="2">
+                    <v-col cols="12" md="3">
                         <DatePicker v-model="filters.date_from" label="From Date" density="compact"
                             @update:model-value="onDateFromChange" />
                     </v-col>
-                    <v-col cols="12" md="2">
+                    <v-col cols="12" md="3">
                         <DatePicker v-model="filters.date_to" label="To Date" density="compact"
                             @update:model-value="onDateToChange" />
                     </v-col>
                     <v-col cols="12" md="3">
                         <v-text-field v-model="filters.search" label="Search Invoice/Customer"
                             prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable
-                            @update:model-value="fetchSales"></v-text-field>
+                            @input="fetchSales"></v-text-field>
                     </v-col>
                 </v-row>
             </v-card-text>
@@ -45,93 +39,169 @@
                 <span>Sales</span>
                 <span class="text-caption text-grey">
                     Total Records: <strong>{{ pagination.total || 0 }}</strong>
-                    <span v-if="sales.length > 0">
-                        | Showing {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} to
-                        {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} of
-                        {{ pagination.total }}
-                    </span>
                 </span>
             </v-card-title>
             <v-card-text>
-                <div v-if="loading" class="text-center py-4">
-                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                </div>
-                <v-table v-else>
+                <v-table>
                     <thead>
                         <tr>
-                            <th>Invoice #</th>
+                            <th class="sortable" @click="onSort('invoice_number')">
+                                <div class="sortable-header">
+                                    <span>Invoice #</span>
+                                    <v-icon v-if="sortBy === 'invoice_number'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                             <th>Customer</th>
-                            <th>Date</th>
-                            <th class="text-end">Total</th>
-                            <th class="text-end">Paid</th>
-                            <th class="text-end">Due</th>
-                            <th>Status</th>
+                            <th class="sortable" @click="onSort('invoice_date')">
+                                <div class="sortable-header">
+                                    <span>Date</span>
+                                    <v-icon v-if="sortBy === 'invoice_date'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="text-end sortable" @click="onSort('total_amount')">
+                                <div class="sortable-header justify-end">
+                                    <span>Total</span>
+                                    <v-icon v-if="sortBy === 'total_amount'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="text-end sortable" @click="onSort('paid_amount')">
+                                <div class="sortable-header justify-end">
+                                    <span>Paid</span>
+                                    <v-icon v-if="sortBy === 'paid_amount'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="text-end sortable" @click="onSort('balance_amount')">
+                                <div class="sortable-header justify-end">
+                                    <span>Due</span>
+                                    <v-icon v-if="sortBy === 'balance_amount'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
+                            <th class="sortable" @click="onSort('status')">
+                                <div class="sortable-header">
+                                    <span>Status</span>
+                                    <v-icon v-if="sortBy === 'status'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
+                                </div>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="sale in sales" :key="sale.id">
+                        <!-- Skeleton Loaders -->
+                        <tr v-if="loading" v-for="n in 5" :key="`skeleton-${n}`">
+                            <td><v-skeleton-loader type="text" width="100"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="120"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="90"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="80"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="text" width="80"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="80" height="24"></v-skeleton-loader></td>
+                            <td><v-skeleton-loader type="chip" width="80" height="24"></v-skeleton-loader></td>
                             <td>
-                                <span class="font-weight-bold">{{ sale.invoice_number }}</span>
-                            </td>
-                            <td>
-                                {{ sale.customer?.name || 'Walk-in' }}
-                            </td>
-                            <td>
-                                {{ formatDateDDMMYYYY(sale.invoice_date) }}
-                            </td>
-                            <td class="text-end">
-                                ৳{{ parseFloat(sale.total_amount).toFixed(2) }}
-                            </td>
-                            <td class="text-end">
-                                ৳{{ parseFloat(sale.paid_amount).toFixed(2) }}
-                            </td>
-                            <td class="text-end">
-                                <v-chip :color="sale.balance_amount > 0 ? 'error' : 'success'" size="small">
-                                    ৳{{ parseFloat(sale.balance_amount).toFixed(2) }}
-                                </v-chip>
-                            </td>
-                            <td>
-                                <v-chip :color="getStatusColor(sale.status)" size="small">
-                                    {{ sale.status }}
-                                </v-chip>
-                            </td>
-                            <td>
-                                <v-btn icon="mdi-eye" size="small" variant="text" @click="viewSale(sale)" />
-                                <v-btn icon="mdi-pencil" size="small" variant="text" @click="editSale(sale)" />
-                                <v-btn icon="mdi-printer" size="small" variant="text" @click="printInvoice(sale)" />
-                                <v-btn icon="mdi-delete" size="small" variant="text" color="error"
-                                    @click="confirmDelete(sale)" />
+                                <div class="d-flex">
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"></v-skeleton-loader>
+                                </div>
                             </td>
                         </tr>
-                        <tr v-if="sales.length === 0">
-                            <td colspan="8" class="text-center py-4">No sales found</td>
-                        </tr>
+                        <!-- Actual Sales Data -->
+                        <template v-else>
+                            <tr v-for="sale in sales" :key="sale.id">
+                                <td>
+                                    <span class="font-weight-bold">{{ sale.invoice_number }}</span>
+                                </td>
+                                <td>
+                                    {{ sale.customer?.name || 'Walk-in' }}
+                                </td>
+                                <td>
+                                    {{ formatDateDDMMYYYY(sale.invoice_date) }}
+                                </td>
+                                <td class="text-end">
+                                    ৳{{ parseFloat(sale.total_amount).toFixed(2) }}
+                                </td>
+                                <td class="text-end">
+                                    ৳{{ parseFloat(sale.paid_amount).toFixed(2) }}
+                                </td>
+                                <td class="text-end">
+                                    <v-chip :color="sale.balance_amount > 0 ? 'error' : 'success'" size="small">
+                                        ৳{{ parseFloat(sale.balance_amount).toFixed(2) }}
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <v-chip :color="getStatusColor(sale.status)" size="small">
+                                        {{ sale.status }}
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <v-btn icon="mdi-eye" size="small" variant="text" @click="viewSale(sale)" />
+                                    <v-btn icon="mdi-pencil" size="small" variant="text" @click="editSale(sale)" />
+                                    <v-btn icon="mdi-printer" size="small" variant="text" @click="printInvoice(sale)" />
+                                    <v-btn icon="mdi-delete" size="small" variant="text" color="error"
+                                        @click="confirmDelete(sale)" />
+                                </td>
+                            </tr>
+                            <tr v-if="sales.length === 0">
+                                <td colspan="8" class="text-center py-4">No sales found</td>
+                            </tr>
+                        </template>
                     </tbody>
                 </v-table>
 
-                <!-- Pagination and Records Info -->
+                <!-- Pagination -->
                 <div
                     class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <!-- Left: Records Info -->
                     <div class="text-caption text-grey">
                         <span v-if="sales.length > 0 && pagination.total > 0">
-                            Showing <strong>{{ ((pagination.current_page - 1) * pagination.per_page) + 1 }}</strong> to
-                            <strong>{{ Math.min(pagination.current_page * pagination.per_page, pagination.total)
-                            }}</strong> of
-                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
-                            <span v-if="pagination.last_page > 1" class="ml-2">
-                                (Page {{ pagination.current_page }} of {{ pagination.last_page }})
+                            <span v-if="perPage === 'all'">
+                                Showing <strong>all {{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
+                            <span v-else>
+                                Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                                <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
-                        <span v-else>
-                            No records found
-                        </span>
+                        <span v-else>No records found</span>
                     </div>
-                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
-                        <v-pagination v-model="pagination.current_page" :length="pagination.last_page"
-                            :total-visible="7" density="comfortable" @update:model-value="fetchSales">
-                        </v-pagination>
-                    </div>
+
+                    <!-- Right: Items Per Page and Pagination -->
+                    <PaginationControls v-model="currentPage" :pagination="pagination" :per-page-value="perPage"
+                        :per-page-options="perPageOptions" @update:per-page="onPerPageUpdate"
+                        @page-change="onPageChange" />
                 </div>
             </v-card-text>
         </v-card>
@@ -147,26 +217,26 @@
 </template>
 
 <script>
-import axios from '@/utils/axios.config';
+import commonMixin from '../../../mixins/commonMixin';
 import SaleDialog from './dialogs/SaleDialog.vue';
 import ViewSaleDialog from './dialogs/ViewSaleDialog.vue';
-import DatePicker from '@/components/common/DatePicker.vue';
-import adminPaginationMixin from '@/mixins/adminPaginationMixin';
-import { formatDateDDMMYYYY } from '@/utils/formatters';
+import DatePicker from '../../common/DatePicker.vue';
+import PaginationControls from '../../common/PaginationControls.vue';
+import { formatDateDDMMYYYY } from '../../../utils/formatters';
 import InvoicePrint from './InvoicePrint.js';
 
 export default {
     name: 'AdminSales',
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     components: {
         SaleDialog,
         ViewSaleDialog,
         DatePicker,
+        PaginationControls,
     },
     data() {
         return {
             sales: [],
-            loading: false,
             dialog: false,
             viewDialog: false,
             selectedSale: null,
@@ -176,19 +246,6 @@ export default {
                 date_from: '',
                 date_to: '',
             },
-            pagination: {
-                current_page: 1,
-                per_page: 15,
-                last_page: 1,
-                total: 0,
-            },
-            perPageOptions: [
-                { title: '10', value: 10 },
-                { title: '15', value: 15 },
-                { title: '25', value: 25 },
-                { title: '50', value: 50 },
-                { title: '100', value: 100 },
-            ],
             statusOptions: [
                 { title: 'Draft', value: 'draft' },
                 { title: 'Pending', value: 'pending' },
@@ -198,19 +255,26 @@ export default {
             ],
         };
     },
-    mounted() {
-        this.fetchSales();
+    async mounted() {
+        await this.fetchSales();
     },
     methods: {
         async fetchSales() {
-            this.loading = true;
             try {
-                const params = {
-                    page: this.pagination.current_page,
-                    per_page: this.pagination.per_page,
-                    search: this.filters.search || '',
-                    status: this.filters.status || null,
-                };
+                this.loading = true;
+                const params = this.buildPaginationParams();
+
+                // Handle "Show All" option
+                if (this.perPage === 'all') {
+                    params.per_page = 999999; // Very large number to get all records
+                }
+
+                if (this.filters.search) {
+                    params.search = this.filters.search;
+                }
+                if (this.filters.status) {
+                    params.status = this.filters.status;
+                }
 
                 // Only add date filters if they have values (not null, not empty string)
                 if (this.filters.date_from && String(this.filters.date_from).trim() !== '') {
@@ -220,17 +284,15 @@ export default {
                     params.to_date = this.filters.date_to;
                 }
 
-                const { data } = await axios.get('/api/v1/sales', { params });
-                this.sales = data.data || data.sales || [];
-                this.pagination = {
-                    current_page: data.current_page || 1,
-                    per_page: data.per_page || 15,
-                    last_page: data.last_page || 1,
-                    total: data.total || 0,
-                };
+                const response = await this.$axios.get('/api/v1/sales', {
+                    params,
+                    headers: this.getAuthHeaders()
+                });
+
+                this.sales = response.data.data || response.data.sales || [];
+                this.updatePagination(response.data);
             } catch (error) {
-                console.error('Failed to fetch sales', error);
-                this.showError('Failed to load sales');
+                this.handleApiError(error, 'Failed to load sales');
             } finally {
                 this.loading = false;
             }
@@ -248,28 +310,19 @@ export default {
             this.viewDialog = true;
         },
         async confirmDelete(sale) {
-            this.selectedSale = sale;
+            if (!confirm(`Are you sure you want to delete sale ${sale.invoice_number}?`)) {
+                return;
+            }
 
-            const result = await window.Swal.fire({
-                title: 'Are you sure?',
-                text: `Do you want to delete sale ${sale.invoice_number}?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
-            });
+            try {
+                await this.$axios.delete(`/api/v1/sales/${sale.id}`, {
+                    headers: this.getAuthHeaders()
+                });
 
-            if (result.isConfirmed) {
-                try {
-                    await axios.delete(`/api/v1/sales/${sale.id}`);
-                    this.showSuccess('Sale deleted successfully');
-                    this.fetchSales();
-                } catch (error) {
-                    console.error('Failed to delete sale', error);
-                    this.showError(error.response?.data?.message || 'Failed to delete sale');
-                }
+                this.showSuccess('Sale deleted successfully');
+                await this.fetchSales();
+            } catch (error) {
+                this.handleApiError(error, 'Error deleting sale');
             }
         },
         printInvoice(sale) {
@@ -287,24 +340,36 @@ export default {
                 date_from: '',
                 date_to: '',
             };
-            this.pagination.current_page = 1;
+            this.resetPagination();
+            this.fetchSales();
+        },
+        onPerPageUpdate(value) {
+            this.perPage = value;
+            this.onPerPageChange();
+        },
+        onPageChange(page) {
+            this.currentPage = page;
             this.fetchSales();
         },
         onPerPageChange() {
-            this.pagination.current_page = 1;
+            this.resetPagination();
+            this.fetchSales();
+        },
+        onSort(field) {
+            this.handleSort(field);
             this.fetchSales();
         },
         // Date change handlers - explicitly set the filter value and fetch
         onDateFromChange(value) {
             // Set the filter value explicitly (handles both v-model update and direct value)
             this.filters.date_from = value || '';
-            this.pagination.current_page = 1; // Reset to first page when filter changes
+            this.resetPagination(); // Reset to first page when filter changes
             this.fetchSales();
         },
         onDateToChange(value) {
             // Set the filter value explicitly (handles both v-model update and direct value)
             this.filters.date_to = value || '';
-            this.pagination.current_page = 1; // Reset to first page when filter changes
+            this.resetPagination(); // Reset to first page when filter changes
             this.fetchSales();
         },
         formatDateDDMMYYYY,
@@ -317,55 +382,6 @@ export default {
                 cancelled: 'error',
             };
             return colors[status] || 'grey';
-        },
-        showSuccess(message) {
-            if (window.Toast) {
-                window.Toast.fire({
-                    icon: 'success',
-                    title: message
-                });
-            } else if (window.Swal) {
-                window.Swal.fire({
-                    icon: 'success',
-                    title: message,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                alert(message);
-            }
-        },
-        showError(message) {
-            if (window.Toast) {
-                window.Toast.fire({
-                    icon: 'error',
-                    title: message
-                });
-            } else if (window.Swal) {
-                window.Swal.fire({
-                    icon: 'error',
-                    title: message
-                });
-            } else {
-                alert(message);
-            }
-        },
-        showInfo(message) {
-            if (window.Toast) {
-                window.Toast.fire({
-                    icon: 'info',
-                    title: message
-                });
-            } else if (window.Swal) {
-                window.Swal.fire({
-                    icon: 'info',
-                    title: message,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                alert(message);
-            }
         },
     },
 };
@@ -381,6 +397,98 @@ export default {
 
 .page-title {
     margin: 0;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.sortable-header.justify-end {
+    justify-content: flex-end;
+}
+
+.sort-icon {
+    flex-shrink: 0;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 1 !important;
+    background-color: white;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.sort-icon.active {
+    opacity: 1 !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.active :deep(svg),
+.sort-icon.active :deep(path) {
+    fill: currentColor !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    opacity: 1 !important;
+}
+
+.sort-icon.inactive {
+    opacity: 0.7 !important;
+    color: #424242 !important;
+    visibility: visible !important;
+    background-color: white !important;
+}
+
+.sort-icon.inactive :deep(svg),
+.sort-icon.inactive :deep(path) {
+    fill: #424242 !important;
+    color: #424242 !important;
+    opacity: 0.7 !important;
+}
+
+.sortable:hover .sort-icon.inactive {
+    opacity: 1 !important;
+    color: #212121 !important;
+    background-color: white !important;
+}
+
+.sortable:hover .sort-icon.inactive :deep(svg),
+.sortable:hover .sort-icon.inactive :deep(path) {
+    fill: #212121 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure icons are visible on table header */
+:deep(.v-table thead th) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable) {
+    background-color: rgba(var(--v-theme-surface), 1);
+}
+
+:deep(.v-table thead th.sortable:hover) {
+    background-color: rgba(0, 0, 0, 0.04);
 }
 </style>
 

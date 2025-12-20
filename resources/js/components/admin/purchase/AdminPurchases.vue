@@ -138,7 +138,7 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 import PurchaseDialog from './dialogs/PurchaseDialog.vue';
 import ViewPurchaseDialog from './dialogs/ViewPurchaseDialog.vue';
 
@@ -147,7 +147,7 @@ export default {
         PurchaseDialog,
         ViewPurchaseDialog
     },
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             purchases: [],

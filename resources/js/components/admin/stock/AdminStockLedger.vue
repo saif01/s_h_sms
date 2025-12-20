@@ -160,10 +160,10 @@
 </template>
 
 <script>
-import adminPaginationMixin from '../../../mixins/adminPaginationMixin';
+import commonMixin from '../../../mixins/commonMixin';
 
 export default {
-    mixins: [adminPaginationMixin],
+    mixins: [commonMixin],
     data() {
         return {
             ledgers: [],
