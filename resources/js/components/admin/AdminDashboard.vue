@@ -456,7 +456,8 @@ export default {
                         callbacks: {
                             label: (context) => {
                                 const value = context.parsed.y || 0;
-                                return `Sales: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)}`;
+                                const formatted = '৳' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                return `Sales: ${formatted}`;
                             },
                         },
                     },
@@ -467,9 +468,9 @@ export default {
                         ticks: {
                             callback: (value) => {
                                 if (value >= 1000) {
-                                    return '$' + (value / 1000).toFixed(1) + 'k';
+                                    return '৳' + (value / 1000).toFixed(1) + 'k';
                                 }
-                                return '$' + value;
+                                return '৳' + value;
                             },
                         },
                         grid: {
@@ -516,7 +517,8 @@ export default {
         },
         formatCurrency(value) {
             const number = Number(value) || 0;
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(number);
+            // Format with BDT symbol (৳) and comma separators
+            return '৳' + number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         },
         getCustomerColor(index) {
             const colors = ['primary', 'success', 'info', 'warning', 'error'];
