@@ -16,8 +16,12 @@ class StockLedger extends Model
         'reference_number',
         'quantity',
         'unit_cost',
+        'weighted_avg_cost',
+        'cost_method',
         'total_cost',
         'balance_after',
+        'value_before',
+        'value_after',
         'notes',
         'created_by',
         'transaction_date',
@@ -26,8 +30,11 @@ class StockLedger extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_cost' => 'decimal:2',
+        'weighted_avg_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'balance_after' => 'integer',
+        'value_before' => 'decimal:2',
+        'value_after' => 'decimal:2',
     ];
 
     public function product(): BelongsTo

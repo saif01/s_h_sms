@@ -9,6 +9,7 @@ use App\Models\StockLedger;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PurchaseController extends Controller
@@ -185,6 +186,14 @@ class PurchaseController extends Controller
                     // Refresh stock to ensure it's saved correctly
                     $stock->refresh();
 
+                    // Ensure transaction_date is in correct format
+                    $transactionDate = $validated['invoice_date'];
+                    if ($transactionDate instanceof \DateTime || $transactionDate instanceof \Carbon\Carbon) {
+                        $transactionDate = $transactionDate->format('Y-m-d');
+                    } elseif (is_string($transactionDate) && strpos($transactionDate, 'T') !== false) {
+                        $transactionDate = substr($transactionDate, 0, 10);
+                    }
+
                     StockLedger::create([
                         'product_id' => $purchaseItem->product_id,
                         'warehouse_id' => $purchase->warehouse_id,
@@ -195,12 +204,13 @@ class PurchaseController extends Controller
                         'quantity' => $purchaseItem->quantity,
                         'unit_cost' => $purchaseItem->unit_price,
                         'weighted_avg_cost' => $avgCost,
+                        'cost_method' => 'wavg',
                         'total_cost' => $purchaseItem->total,
                         'balance_after' => $balanceAfter,
                         'value_before' => $valueBefore,
                         'value_after' => $valueAfter,
                         'created_by' => auth()->id(),
-                        'transaction_date' => $validated['invoice_date'],
+                        'transaction_date' => $transactionDate,
                     ]);
                 }
             }
@@ -375,6 +385,14 @@ class PurchaseController extends Controller
                             $avgCost = $purchaseItem->unit_price;
                         }
 
+                        // Ensure transaction_date is in correct format
+                        $transactionDate = $validated['invoice_date'] ?? $purchase->invoice_date;
+                        if ($transactionDate instanceof \DateTime || $transactionDate instanceof \Carbon\Carbon) {
+                            $transactionDate = $transactionDate->format('Y-m-d');
+                        } elseif (is_string($transactionDate) && strpos($transactionDate, 'T') !== false) {
+                            $transactionDate = substr($transactionDate, 0, 10);
+                        }
+
                         // Create stock ledger entry
                         StockLedger::create([
                             'product_id' => $purchaseItem->product_id,
@@ -386,12 +404,13 @@ class PurchaseController extends Controller
                             'quantity' => $purchaseItem->quantity,
                             'unit_cost' => $purchaseItem->unit_price,
                             'weighted_avg_cost' => $avgCost,
+                            'cost_method' => 'wavg',
                             'total_cost' => $purchaseItem->total,
                             'balance_after' => $balanceAfter,
                             'value_before' => $valueBefore,
                             'value_after' => $valueAfter,
                             'created_by' => auth()->id(),
-                            'transaction_date' => $validated['invoice_date'] ?? $purchase->invoice_date,
+                            'transaction_date' => $transactionDate,
                         ]);
                     }
                 }
@@ -499,6 +518,12 @@ class PurchaseController extends Controller
             foreach ($purchase->items as $purchaseItem) {
                 // Validate purchase item has required data
                 if (!$purchaseItem->product_id || !$purchaseItem->quantity || $purchaseItem->quantity <= 0) {
+                    \Log::warning('Skipping invalid purchase item', [
+                        'purchase_id' => $purchase->id,
+                        'item_id' => $purchaseItem->id ?? null,
+                        'product_id' => $purchaseItem->product_id,
+                        'quantity' => $purchaseItem->quantity,
+                    ]);
                     continue; // Skip invalid items
                 }
 
@@ -514,10 +539,32 @@ class PurchaseController extends Controller
                     $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
                     $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
 
-                    $stock->quantity = $newQty;
-                    $stock->average_cost = $avgCost;
-                    $stock->total_value = $newValue;
-                    $stock->save();
+                    // Use update() method for consistency and to ensure it saves
+                    $updated = $stock->update([
+                        'quantity' => $newQty,
+                        'average_cost' => $avgCost,
+                        'total_value' => $newValue,
+                    ]);
+
+                    if (!$updated) {
+                        \Log::error('Failed to update stock', [
+                            'purchase_id' => $purchase->id,
+                            'product_id' => $purchaseItem->product_id,
+                            'warehouse_id' => $purchase->warehouse_id,
+                            'old_quantity' => $oldQty,
+                            'new_quantity' => $newQty,
+                        ]);
+                        throw new \Exception('Failed to update stock quantity');
+                    }
+
+                    \Log::info('Stock updated successfully', [
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $purchaseItem->product_id,
+                        'warehouse_id' => $purchase->warehouse_id,
+                        'old_quantity' => $oldQty,
+                        'new_quantity' => $newQty,
+                        'quantity_added' => $purchaseItem->quantity,
+                    ]);
                     
                     $balanceAfter = $newQty;
                     $valueBefore = $oldValue;
@@ -530,6 +577,25 @@ class PurchaseController extends Controller
                         'average_cost' => $purchaseItem->unit_price,
                         'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
                     ]);
+
+                    if (!$stock || !$stock->id) {
+                        \Log::error('Failed to create stock', [
+                            'purchase_id' => $purchase->id,
+                            'product_id' => $purchaseItem->product_id,
+                            'warehouse_id' => $purchase->warehouse_id,
+                            'quantity' => $purchaseItem->quantity,
+                        ]);
+                        throw new \Exception('Failed to create stock record');
+                    }
+
+                    \Log::info('Stock created successfully', [
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $purchaseItem->product_id,
+                        'warehouse_id' => $purchase->warehouse_id,
+                        'quantity' => $purchaseItem->quantity,
+                        'stock_id' => $stock->id,
+                    ]);
+
                     $balanceAfter = $purchaseItem->quantity;
                     $valueBefore = 0;
                     $valueAfter = $stock->total_value;
@@ -539,24 +605,62 @@ class PurchaseController extends Controller
                 // Refresh stock to ensure it's saved correctly
                 $stock->refresh();
 
-                // Create stock ledger entry
-                StockLedger::create([
-                    'product_id' => $purchaseItem->product_id,
-                    'warehouse_id' => $purchase->warehouse_id,
-                    'type' => 'in',
-                    'reference_type' => 'purchase',
-                    'reference_id' => $purchase->id,
-                    'reference_number' => $purchase->invoice_number,
-                    'quantity' => $purchaseItem->quantity,
-                    'unit_cost' => $purchaseItem->unit_price,
-                    'weighted_avg_cost' => $avgCost,
-                    'total_cost' => $purchaseItem->total,
-                    'balance_after' => $balanceAfter,
-                    'value_before' => $valueBefore,
-                    'value_after' => $valueAfter,
-                    'created_by' => auth()->id(),
-                    'transaction_date' => $purchase->invoice_date,
-                ]);
+                // Verify stock was saved correctly
+                $verifyStock = Stock::find($stock->id);
+                if (!$verifyStock || $verifyStock->quantity != $balanceAfter) {
+                    \Log::error('Stock verification failed after save', [
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $purchaseItem->product_id,
+                        'expected_quantity' => $balanceAfter,
+                        'actual_quantity' => $verifyStock ? $verifyStock->quantity : null,
+                    ]);
+                    throw new \Exception('Stock was not saved correctly');
+                }
+
+                // Ensure transaction_date is in correct format (date string, not datetime)
+                $transactionDate = $purchase->invoice_date;
+                if ($transactionDate instanceof \DateTime || $transactionDate instanceof \Carbon\Carbon) {
+                    $transactionDate = $transactionDate->format('Y-m-d');
+                } elseif (is_string($transactionDate) && strpos($transactionDate, 'T') !== false) {
+                    $transactionDate = substr($transactionDate, 0, 10);
+                }
+
+                // Create stock ledger entry with error handling
+                try {
+                    $ledgerEntry = StockLedger::create([
+                        'product_id' => $purchaseItem->product_id,
+                        'warehouse_id' => $purchase->warehouse_id,
+                        'type' => 'in',
+                        'reference_type' => 'purchase',
+                        'reference_id' => $purchase->id,
+                        'reference_number' => $purchase->invoice_number,
+                        'quantity' => $purchaseItem->quantity,
+                        'unit_cost' => $purchaseItem->unit_price,
+                        'weighted_avg_cost' => $avgCost,
+                        'cost_method' => 'wavg',
+                        'total_cost' => $purchaseItem->total ?? ($purchaseItem->quantity * $purchaseItem->unit_price),
+                        'balance_after' => $balanceAfter,
+                        'value_before' => $valueBefore,
+                        'value_after' => $valueAfter,
+                        'created_by' => auth()->id(),
+                        'transaction_date' => $transactionDate,
+                    ]);
+
+                    \Log::info('Stock ledger entry created successfully', [
+                        'ledger_id' => $ledgerEntry->id,
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $purchaseItem->product_id,
+                        'quantity' => $purchaseItem->quantity,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create stock ledger entry', [
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $purchaseItem->product_id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    throw $e; // Re-throw to rollback transaction
+                }
             }
 
             // Update purchase status based on payment
