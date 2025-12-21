@@ -150,14 +150,14 @@
                                     {{ formatDateDDMMYYYY(sale.invoice_date) }}
                                 </td>
                                 <td class="text-end">
-                                    ৳{{ parseFloat(sale.total_amount).toFixed(2) }}
+                                    ৳{{ formatCurrency(sale.total_amount) }}
                                 </td>
                                 <td class="text-end">
-                                    ৳{{ parseFloat(sale.paid_amount).toFixed(2) }}
+                                    ৳{{ formatCurrency(sale.paid_amount) }}
                                 </td>
                                 <td class="text-end">
                                     <v-chip :color="sale.balance_amount > 0 ? 'error' : 'success'" size="small">
-                                        ৳{{ parseFloat(sale.balance_amount).toFixed(2) }}
+                                        ৳{{ formatCurrency(sale.balance_amount) }}
                                     </v-chip>
                                 </td>
                                 <td>
@@ -367,6 +367,12 @@ export default {
                 cancelled: 'error',
             };
             return colors[status] || 'grey';
+        },
+        formatCurrency(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                return '0.00';
+            }
+            return parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         },
     },
 };

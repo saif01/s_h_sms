@@ -41,7 +41,8 @@
                                                 :disabled="!product.stock_quantity || product.stock_quantity <= 0">
                                                 <v-icon size="14" class="mr-1">mdi-package-variant</v-icon>
                                                 {{ product.name }}
-                                                <span class="ml-1 text-caption">(৳{{ product.sale_price }})</span>
+                                                <span class="ml-1 text-caption">(৳{{ formatCurrency(product.sale_price)
+                                                }})</span>
                                             </v-chip>
                                         </div>
                                     </div>
@@ -65,7 +66,7 @@
                                                 </v-list-item-subtitle>
                                                 <template #append>
                                                     <v-chip color="primary" size="small" variant="flat">৳{{
-                                                        product.sale_price }}</v-chip>
+                                                        formatCurrency(product.sale_price) }}</v-chip>
                                                 </template>
                                             </v-list-item>
                                         </v-list>
@@ -103,26 +104,14 @@
                                                         class="cart-input"
                                                         @update:model-value="updateCartItem(index)" />
                                                 </td>
-                                                <td class="pa-1">
-                                                    <v-text-field v-model.number="item.unit_price" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details variant="outlined"
-                                                        class="cart-input"
-                                                        @update:model-value="updateCartItem(index)" />
-                                                </td>
-                                                <td class="pa-1">
-                                                    <v-text-field v-model.number="item.discount" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details variant="outlined"
-                                                        class="cart-input"
-                                                        @update:model-value="updateCartItem(index)" />
-                                                </td>
-                                                <td class="pa-1">
-                                                    <v-text-field v-model.number="item.tax" type="number" min="0"
-                                                        step="0.01" density="compact" hide-details variant="outlined"
-                                                        class="cart-input"
-                                                        @update:model-value="updateCartItem(index, true)" />
-                                                </td>
+                                                <td class="text-body-2 font-weight-medium text-end">৳{{
+                                                    formatCurrency(item.unit_price || 0) }}</td>
+                                                <td class="text-body-2 font-weight-medium text-end">৳{{
+                                                    formatCurrency(item.discount || 0) }}</td>
+                                                <td class="text-body-2 font-weight-medium text-end">৳{{
+                                                    formatCurrency(item.tax || 0) }}</td>
                                                 <td class="text-body-2 font-weight-bold text-end">৳{{
-                                                    item.total.toFixed(2) }}</td>
+                                                    formatCurrency(item.total) }}</td>
                                                 <td class="text-center">
                                                     <v-btn icon="mdi-delete" size="x-small" variant="text" color="error"
                                                         @click="removeFromCart(index)" />
@@ -222,15 +211,15 @@
                                     <div class="totals-section">
                                         <div class="d-flex justify-space-between mb-1">
                                             <span class="text-caption text-grey">Subtotal:</span>
-                                            <span class="text-body-2 font-weight-medium">৳{{ form.subtotal.toFixed(2)
-                                            }}</span>
+                                            <span class="text-body-2 font-weight-medium">৳{{
+                                                formatCurrency(form.subtotal) }}</span>
                                         </div>
 
                                         <div v-if="calculatedItemsDiscount > 0"
                                             class="d-flex justify-space-between mb-1">
                                             <span class="text-caption text-grey">Item Discounts:</span>
-                                            <span class="text-body-2 text-error">-৳{{ calculatedItemsDiscount.toFixed(2)
-                                                }}</span>
+                                            <span class="text-body-2 text-error">-৳{{
+                                                formatCurrency(calculatedItemsDiscount) }}</span>
                                         </div>
 
                                         <div class="d-flex justify-space-between mb-1">
@@ -244,7 +233,7 @@
                                         <div v-if="calculatedItemsTax > 0" class="d-flex justify-space-between mb-1">
                                             <span class="text-caption text-grey font-weight-medium">Total Tax:</span>
                                             <span class="text-body-2 font-weight-medium">৳{{
-                                                calculatedItemsTax.toFixed(2) }}</span>
+                                                formatCurrency(calculatedItemsTax) }}</span>
                                         </div>
 
                                         <div class="d-flex justify-space-between mb-2">
@@ -259,7 +248,7 @@
                                         <div class="d-flex justify-space-between mb-2 total-amount">
                                             <span class="text-body-1 font-weight-bold">Total:</span>
                                             <span class="text-h6 font-weight-bold text-primary">৳{{
-                                                form.total_amount.toFixed(2) }}</span>
+                                                formatCurrency(form.total_amount) }}</span>
                                         </div>
 
                                         <div class="mb-2">
@@ -592,6 +581,12 @@ export default {
                 cancelled: 'Cancelled',
             };
             return labels[status] || status;
+        },
+        formatCurrency(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                return '0.00';
+            }
+            return parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         },
         async loadSaleForEdit(saleId) {
             if (!saleId) return;
