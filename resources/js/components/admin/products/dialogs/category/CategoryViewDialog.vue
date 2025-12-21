@@ -26,23 +26,26 @@
                             <v-row dense class="ma-0">
                                 <v-col cols="12" sm="3" class="pa-2" v-if="displayCategory.image">
                                     <div class="text-center">
-                                        <v-img :src="displayCategory.image" max-width="120" max-height="120" class="mx-auto"
-                                            style="border-radius: 8px;" cover></v-img>
+                                        <v-img :src="displayCategory.image" max-width="120" max-height="120"
+                                            class="mx-auto" style="border-radius: 8px;" cover></v-img>
                                     </div>
                                 </v-col>
-                                <v-col :cols="displayCategory.image ? 12 : 12" :sm="displayCategory.image ? 9 : 12" class="pa-2">
+                                <v-col :cols="displayCategory.image ? 12 : 12" :sm="displayCategory.image ? 9 : 12"
+                                    class="pa-2">
                                     <v-row dense class="ma-0">
                                         <v-col cols="12" sm="6" md="4" class="pa-2">
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">ID:</span>
-                                                <span class="text-body-2 font-weight-medium ml-1">{{ displayCategory.id || '-'
-                                                    }}</span>
+                                                <span class="text-body-2 font-weight-medium ml-1">{{ displayCategory.id
+                                                    || '-'
+                                                }}</span>
                                             </div>
                                         </v-col>
                                         <v-col cols="12" sm="6" md="4" class="pa-2">
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">Status:</span>
-                                                <v-chip size="x-small" :color="displayCategory.is_active ? 'success' : 'error'"
+                                                <v-chip size="x-small"
+                                                    :color="displayCategory.is_active ? 'success' : 'error'"
                                                     variant="tonal" class="ml-1">
                                                     {{ displayCategory.is_active ? 'Active' : 'Inactive' }}
                                                 </v-chip>
@@ -63,8 +66,9 @@
                                         <v-col cols="12" class="pa-2">
                                             <div class="info-item-compact">
                                                 <span class="text-caption text-grey">Name:</span>
-                                                <span class="text-body-2 font-weight-medium ml-1">{{ displayCategory.name || '-'
-                                                    }}</span>
+                                                <span class="text-body-2 font-weight-medium ml-1">{{
+                                                    displayCategory.name || '-'
+                                                }}</span>
                                             </div>
                                         </v-col>
                                         <v-col cols="12" class="pa-2" v-if="displayCategory.description">
@@ -88,27 +92,31 @@
                                 <v-col cols="12" sm="6" class="pa-2">
                                     <div class="info-item-compact">
                                         <span class="text-caption text-grey">Created By:</span>
-                                        <span class="text-body-2 ml-1">{{ displayCategory.created_by?.name || '-' }}</span>
+                                        <span class="text-body-2 ml-1">{{ displayCategory.created_by?.name || '-'
+                                        }}</span>
                                     </div>
                                 </v-col>
                                 <v-col cols="12" sm="6" class="pa-2">
                                     <div class="info-item-compact">
                                         <span class="text-caption text-grey">Created At:</span>
-                                        <span class="text-body-2 ml-1">{{ formatDateShort(displayCategory.created_at) || '-'
-                                            }}</span>
+                                        <span class="text-body-2 ml-1">{{ formatDateShort(displayCategory.created_at) ||
+                                            '-'
+                                        }}</span>
                                     </div>
                                 </v-col>
                                 <v-col cols="12" sm="6" class="pa-2">
                                     <div class="info-item-compact">
                                         <span class="text-caption text-grey">Updated By:</span>
-                                        <span class="text-body-2 ml-1">{{ displayCategory.updated_by?.name || '-' }}</span>
+                                        <span class="text-body-2 ml-1">{{ displayCategory.updated_by?.name || '-'
+                                        }}</span>
                                     </div>
                                 </v-col>
                                 <v-col cols="12" sm="6" class="pa-2">
                                     <div class="info-item-compact">
                                         <span class="text-caption text-grey">Updated At:</span>
-                                        <span class="text-body-2 ml-1">{{ formatDateShort(displayCategory.updated_at) || '-'
-                                            }}</span>
+                                        <span class="text-body-2 ml-1">{{ formatDateShort(displayCategory.updated_at) ||
+                                            '-'
+                                        }}</span>
                                     </div>
                                 </v-col>
                             </v-row>
@@ -126,6 +134,7 @@
 
 <script>
 import axios from '@/utils/axios.config';
+import { formatDateShort } from '@/utils/formatters';
 
 export default {
     name: 'CategoryViewDialog',
@@ -182,22 +191,7 @@ export default {
                 this.loading = false;
             }
         },
-        formatDateShort(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-
-            let hours = date.getHours();
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            const formattedHours = String(hours).padStart(2, '0');
-
-            return `${day}/${month}/${year} ${formattedHours}:${minutes} ${ampm}`;
-        },
+        formatDateShort,
         close() {
             this.$emit('update:modelValue', false);
         },
@@ -220,4 +214,3 @@ export default {
     min-height: 32px;
 }
 </style>
-

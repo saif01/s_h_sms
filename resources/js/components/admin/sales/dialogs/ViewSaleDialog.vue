@@ -68,7 +68,7 @@
                                 <v-icon size="16" class="mr-1">mdi-calendar</v-icon>
                                 <span class="text-caption text-grey mr-1">Invoice:</span>
                                 <span class="text-body-2 font-weight-medium">{{ formatDate(saleData.invoice_date)
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-if="saleData.due_date" class="invoice-date-item">
                                 <v-icon size="16" class="mr-1">mdi-calendar-clock</v-icon>
@@ -102,13 +102,13 @@
                                     <td class="text-grey text-caption">{{ index + 1 }}</td>
                                     <td>
                                         <div class="text-body-2 font-weight-medium">{{ item.product?.name || 'Unknown'
-                                        }}</div>
+                                            }}</div>
                                         <div v-if="item.product?.sku" class="text-caption text-grey">SKU: {{
                                             item.product.sku }}</div>
                                     </td>
                                     <td class="text-center text-body-2">{{ item.quantity }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.unit_price || 0).toFixed(2)
-                                    }}</td>
+                                        }}</td>
                                     <td class="text-right text-body-2 text-error">-৳{{ parseFloat(item.discount ||
                                         0).toFixed(2) }}</td>
                                     <td class="text-right text-body-2">৳{{ parseFloat(item.tax || 0).toFixed(2) }}</td>
@@ -218,7 +218,7 @@
 
 <script>
 import axios from '@/utils/axios.config';
-import { formatDate } from '@/utils/formatters';
+import { formatDateDDMMYYYY } from '@/utils/formatters';
 import InvoicePrint from '../InvoicePrint.js';
 
 export default {
@@ -348,7 +348,7 @@ export default {
                 this.loading = false;
             }
         },
-        formatDate,
+        formatDate: formatDateDDMMYYYY,
         getStatusColor(status) {
             const colors = {
                 draft: 'grey',

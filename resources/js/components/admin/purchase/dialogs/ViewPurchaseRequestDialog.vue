@@ -67,6 +67,8 @@
 </template>
 
 <script>
+import { formatDateDDMMYYYY, formatDateShort } from '@/utils/formatters';
+
 export default {
     name: 'ViewPurchaseRequestDialog',
     props: {
@@ -81,24 +83,8 @@ export default {
     },
     emits: ['update:modelValue'],
     methods: {
-        formatDate(date) {
-            if (!date) return 'N/A';
-            return new Date(date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        },
-        formatDateTime(dateTime) {
-            if (!dateTime) return 'N/A';
-            return new Date(dateTime).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        },
+        formatDate: formatDateDDMMYYYY,
+        formatDateTime: formatDateShort,
         getStatusColor(status) {
             const colors = {
                 'pending': 'warning',

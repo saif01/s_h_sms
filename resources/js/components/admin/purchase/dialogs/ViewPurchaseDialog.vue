@@ -115,7 +115,7 @@
                                             <span class="text-h6 font-weight-bold">Total:</span>
                                             <span class="text-h6 font-weight-bold">{{
                                                 formatCurrency(purchase.total_amount
-                                                || 0) }}</span>
+                                                    || 0) }}</span>
                                         </div>
                                         <div class="d-flex justify-space-between mb-2">
                                             <span class="text-body-2">Paid:</span>
@@ -143,7 +143,7 @@
                         </v-col>
                         <v-col cols="12" md="6" v-if="purchase.created_at">
                             <div class="text-caption text-grey mb-1">Created At</div>
-                            <div class="text-body-2">{{ formatDateTime(purchase.created_at) }}</div>
+                            <div class="text-body-2">{{ formatDateShort(purchase.created_at) }}</div>
                         </v-col>
                         <v-col cols="12" md="6" v-if="purchase.updated_by">
                             <div class="text-caption text-grey mb-1">Updated By</div>
@@ -151,7 +151,7 @@
                         </v-col>
                         <v-col cols="12" md="6" v-if="purchase.updated_at">
                             <div class="text-caption text-grey mb-1">Updated At</div>
-                            <div class="text-body-2">{{ formatDateTime(purchase.updated_at) }}</div>
+                            <div class="text-body-2">{{ formatDateShort(purchase.updated_at) }}</div>
                         </v-col>
                     </v-row>
                 </div>
@@ -165,6 +165,8 @@
 </template>
 
 <script>
+import { formatCurrency, formatDateDDMMYYYY, formatDateShort } from '@/utils/formatters';
+
 export default {
     name: 'ViewPurchaseDialog',
     props: {
@@ -179,31 +181,9 @@ export default {
     },
     emits: ['update:modelValue'],
     methods: {
-        formatCurrency(value) {
-            if (value === null || value === undefined) return '৳0.00';
-            return '৳' + new Intl.NumberFormat('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(value);
-        },
-        formatDate(date) {
-            if (!date) return 'N/A';
-            return new Date(date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        },
-        formatDateTime(dateTime) {
-            if (!dateTime) return 'N/A';
-            return new Date(dateTime).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        },
+        formatCurrency,
+        formatDate: formatDateDDMMYYYY,
+        formatDateShort,
         getStatusColor(status) {
             const colors = {
                 'draft': 'grey',
