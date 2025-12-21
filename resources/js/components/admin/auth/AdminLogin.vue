@@ -96,7 +96,7 @@ export default {
             if (this.brandingLogo) {
                 return resolveUploadUrl(this.brandingLogo);
             }
-            return null; // Return null to let v-img handle the missing image gracefully
+            return "/assets/logo/logo.png"; // Return null to let v-img handle the missing image gracefully
         }
     },
     async mounted() {
