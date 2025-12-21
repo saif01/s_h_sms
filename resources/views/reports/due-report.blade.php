@@ -3,124 +3,27 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Due Report</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'DejaVu Sans', sans-serif;
-            font-size: 12px;
-            color: #333;
-            line-height: 1.5;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #1976d2;
-        }
-        
-        .header h1 {
-            color: #1976d2;
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-        
-        .summary-section {
-            margin-bottom: 20px;
-            display: table;
-            width: 100%;
-        }
-        
-        .summary-box {
-            display: table-cell;
-            width: 33.33%;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
-            background-color: #f5f5f5;
-        }
-        
-        .summary-box .label {
-            font-size: 10px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .summary-box .value {
-            font-size: 14px;
-            font-weight: bold;
-            color: #1976d2;
-        }
-        
-        .filters-section {
-            margin-bottom: 15px;
-            font-size: 10px;
-            color: #666;
-        }
-        
-        .filters-section span {
-            margin-right: 15px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        
-        thead {
-            background-color: #1976d2;
-            color: white;
-        }
-        
-        th {
-            padding: 8px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 11px;
-        }
-        
-        th.text-right {
-            text-align: right;
-        }
-        
-        td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #ddd;
-            font-size: 11px;
-        }
-        
-        td.text-right {
-            text-align: right;
-        }
-        
-        .overdue {
-            color: #f44336;
-            font-weight: bold;
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            font-style: italic;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DejaVu Sans', sans-serif; font-size: 9px; color: #333; line-height: 1.3; }
+        .header { text-align: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1.5px solid #1976d2; }
+        .header h1 { color: #1976d2; font-size: 16px; margin-bottom: 2px; font-weight: bold; }
+        .summary-section { margin-bottom: 8px; display: table; width: 100%; }
+        .summary-box { display: table-cell; width: 33.33%; padding: 4px 6px; text-align: center; border: 1px solid #ddd; background-color: #f5f5f5; }
+        .summary-box .label { font-size: 7px; color: #666; margin-bottom: 2px; }
+        .summary-box .value { font-size: 10px; font-weight: bold; color: #1976d2; }
+        .filters-section { margin-bottom: 6px; font-size: 7px; color: #666; }
+        .filters-section span { margin-right: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8px; }
+        thead { background-color: #1976d2; color: white; }
+        th { padding: 4px 5px; text-align: left; font-weight: bold; font-size: 8px; }
+        th.text-right { text-align: right; }
+        td { padding: 3px 5px; border-bottom: 1px solid #ddd; font-size: 8px; }
+        td.text-right { text-align: right; }
+        .overdue { color: #f44336; font-weight: bold; }
+        .footer { margin-top: 10px; padding-top: 6px; border-top: 1px solid #ddd; text-align: center; font-size: 7px; color: #666; }
+        .no-data { text-align: center; padding: 20px; color: #999; font-style: italic; font-size: 9px; }
     </style>
 </head>
 <body>
@@ -147,13 +50,9 @@
 
     @if($filters['party_id'] || $filters['overdue_only'])
     <div class="filters-section">
-        <strong>Filters Applied:</strong>
-        @if($filters['party_id'])
-            <span>{{ ucfirst($partyType) }}: {{ $partyName ?? 'Selected ' . ucfirst($partyType) }}</span>
-        @endif
-        @if($filters['overdue_only'])
-            <span>Overdue Only: Yes</span>
-        @endif
+        <strong>Filters:</strong>
+        @if($filters['party_id']) <span>{{ ucfirst($partyType) }}: {{ $partyName ?? 'Selected' }}</span> @endif
+        @if($filters['overdue_only']) <span>Overdue Only: Yes</span> @endif
     </div>
     @endif
 
@@ -190,14 +89,9 @@
         </tbody>
     </table>
     @else
-    <div class="no-data">
-        No due records found for the selected criteria.
-    </div>
+    <div class="no-data">No due records found for the selected criteria.</div>
     @endif
 
-    <div class="footer">
-        Generated on {{ date('d M Y, h:i A') }} | Page 1
-    </div>
+    <div class="footer">Generated on {{ date('d M Y, h:i A') }}</div>
 </body>
 </html>
-

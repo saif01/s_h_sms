@@ -4,7 +4,6 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Report</title>
     <style>
         * {
@@ -15,31 +14,32 @@
 
         body {
             font-family: 'DejaVu Sans', sans-serif;
-            font-size: 12px;
+            font-size: 9px;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.3;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #1976d2;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1.5px solid #1976d2;
         }
 
         .header h1 {
             color: #1976d2;
-            font-size: 24px;
-            margin-bottom: 5px;
+            font-size: 16px;
+            margin-bottom: 2px;
+            font-weight: bold;
         }
 
         .header .date-range {
             color: #666;
-            font-size: 11px;
+            font-size: 8px;
         }
 
         .summary-section {
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             display: table;
             width: 100%;
         }
@@ -47,38 +47,39 @@
         .summary-box {
             display: table-cell;
             width: 25%;
-            padding: 10px;
+            padding: 4px 6px;
             text-align: center;
             border: 1px solid #ddd;
             background-color: #f5f5f5;
         }
 
         .summary-box .label {
-            font-size: 10px;
+            font-size: 7px;
             color: #666;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
         .summary-box .value {
-            font-size: 14px;
+            font-size: 10px;
             font-weight: bold;
             color: #1976d2;
         }
 
         .filters-section {
-            margin-bottom: 15px;
-            font-size: 10px;
+            margin-bottom: 6px;
+            font-size: 7px;
             color: #666;
         }
 
         .filters-section span {
-            margin-right: 15px;
+            margin-right: 10px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
+            font-size: 8px;
         }
 
         thead {
@@ -87,10 +88,10 @@
         }
 
         th {
-            padding: 8px;
+            padding: 4px 5px;
             text-align: left;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 8px;
         }
 
         th.text-right {
@@ -98,24 +99,20 @@
         }
 
         td {
-            padding: 6px 8px;
+            padding: 3px 5px;
             border-bottom: 1px solid #ddd;
-            font-size: 11px;
+            font-size: 8px;
         }
 
         td.text-right {
             text-align: right;
         }
 
-        tbody tr:hover {
-            background-color: #f9f9f9;
-        }
-
         .status-badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-size: 7px;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -146,34 +143,32 @@
         }
 
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
+            margin-top: 10px;
+            padding-top: 6px;
             border-top: 1px solid #ddd;
             text-align: center;
-            font-size: 10px;
+            font-size: 7px;
             color: #666;
         }
 
         .top-products {
-            margin-top: 30px;
+            margin-top: 10px;
             page-break-inside: avoid;
         }
 
         .top-products h3 {
             color: #1976d2;
-            font-size: 16px;
-            margin-bottom: 10px;
+            font-size: 11px;
+            margin-bottom: 4px;
+            font-weight: bold;
         }
 
         .no-data {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: #999;
             font-style: italic;
-        }
-
-        .page-break {
-            page-break-after: always;
+            font-size: 9px;
         }
     </style>
 </head>
@@ -183,9 +178,7 @@
         <h1>Sales Report</h1>
         <div class="date-range">
             @if ($filters['date_from'] || $filters['date_to'])
-                Period:
-                {{ $filters['date_from'] ? date('d M Y', strtotime($filters['date_from'])) : 'N/A' }}
-                to
+                Period: {{ $filters['date_from'] ? date('d M Y', strtotime($filters['date_from'])) : 'N/A' }} to
                 {{ $filters['date_to'] ? date('d M Y', strtotime($filters['date_to'])) : 'N/A' }}
             @else
                 All Time
@@ -216,9 +209,9 @@
 
     @if ($filters['customer_id'] || $filters['status'])
         <div class="filters-section">
-            <strong>Filters Applied:</strong>
+            <strong>Filters:</strong>
             @if ($filters['customer_id'])
-                <span>Customer: {{ $customerName ?? 'Selected Customer' }}</span>
+                <span>Customer: {{ $customerName ?? 'Selected' }}</span>
             @endif
             @if ($filters['status'])
                 <span>Status: {{ ucfirst($filters['status']) }}</span>
@@ -254,19 +247,15 @@
                                 <span style="color: #4caf50;">Tk {{ number_format($sale->balance_amount, 2) }}</span>
                             @endif
                         </td>
-                        <td>
-                            <span class="status-badge status-{{ strtolower($sale->status) }}">
-                                {{ ucfirst($sale->status) }}
-                            </span>
+                        <td><span
+                                class="status-badge status-{{ strtolower($sale->status) }}">{{ ucfirst($sale->status) }}</span>
                         </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     @else
-        <div class="no-data">
-            No sales data found for the selected criteria.
-        </div>
+        <div class="no-data">No sales data found for the selected criteria.</div>
     @endif
 
     @if (isset($topProducts) && count($topProducts) > 0)
@@ -276,8 +265,8 @@
                 <thead>
                     <tr>
                         <th>Product</th>
-                        <th class="text-right">Quantity Sold</th>
-                        <th class="text-right">Total Revenue</th>
+                        <th class="text-right">Qty Sold</th>
+                        <th class="text-right">Revenue</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -293,9 +282,7 @@
         </div>
     @endif
 
-    <div class="footer">
-        Generated on {{ date('d M Y, h:i A') }} | Page 1
-    </div>
+    <div class="footer">Generated on {{ date('d M Y, h:i A') }}</div>
 </body>
 
 </html>
