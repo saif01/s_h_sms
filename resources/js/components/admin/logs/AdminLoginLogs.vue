@@ -77,20 +77,14 @@
         <v-card class="mb-4">
             <v-card-text>
                 <v-row>
-                    <v-col cols="12" md="3">
-                        <v-select v-model="perPage" :items="perPageOptions" label="Items per page"
-                            prepend-inner-icon="mdi-format-list-numbered" variant="outlined" density="compact"
-                            @update:model-value="onPerPageChange"></v-select>
-                    </v-col>
-                    <v-col cols="12" md="3">
+                    <v-col cols="12" md="4">
                         <v-select v-model="statusFilter" :items="statusOptions" label="Filter by Status"
-                            prepend-inner-icon="mdi-filter" variant="outlined" density="compact" clearable
-                            @update:model-value="loadLogs"></v-select>
+                            variant="outlined" density="compact" clearable @update:model-value="loadLogs"></v-select>
                     </v-col>
-                    <v-col cols="12" md="6">
-                        <v-text-field v-model="search" label="Search (email, IP, user agent)" prepend-inner-icon="mdi-magnify"
-                            variant="outlined" density="compact" clearable
-                            @update:model-value="loadLogs"></v-text-field>
+                    <v-col cols="12" md="8">
+                        <v-text-field v-model="search" label="Search (email, IP, user agent)"
+                            prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" clearable
+                            @input="loadLogs"></v-text-field>
                     </v-col>
                 </v-row>
             </v-card-text>
@@ -102,9 +96,6 @@
                 <span>Login Logs</span>
                 <span class="text-caption text-grey">
                     Total Records: <strong>{{ pagination.total || 0 }}</strong>
-                    <span v-if="logs.length > 0">
-                        | Showing {{ ((currentPage - 1) * perPage) + 1 }} to {{ Math.min(currentPage * perPage, pagination.total) }} of {{ pagination.total }}
-                    </span>
                 </span>
             </v-card-title>
             <v-card-text>
@@ -112,30 +103,50 @@
                     <thead>
                         <tr>
                             <th class="sortable" @click="onSort('email')">
-                                <div class="d-flex align-center">
-                                    Email
-                                    <v-icon :icon="getSortIcon('email')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Email</span>
+                                    <v-icon v-if="sortBy === 'email'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>User</th>
                             <th class="sortable" @click="onSort('ip_address')">
-                                <div class="d-flex align-center">
-                                    IP Address
-                                    <v-icon :icon="getSortIcon('ip_address')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>IP Address</span>
+                                    <v-icon v-if="sortBy === 'ip_address'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>User Agent</th>
                             <th class="sortable" @click="onSort('status')">
-                                <div class="d-flex align-center">
-                                    Status
-                                    <v-icon :icon="getSortIcon('status')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Status</span>
+                                    <v-icon v-if="sortBy === 'status'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Failure Reason</th>
                             <th class="sortable" @click="onSort('created_at')">
-                                <div class="d-flex align-center">
-                                    Date
-                                    <v-icon :icon="getSortIcon('created_at')" size="small" class="ml-1"></v-icon>
+                                <div class="sortable-header">
+                                    <span>Date</span>
+                                    <v-icon v-if="sortBy === 'created_at'" size="18" class="sort-icon active">
+                                        {{ sortDirection === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}
+                                    </v-icon>
+                                    <v-icon v-else size="18" class="sort-icon inactive">
+                                        mdi-unfold-more-horizontal
+                                    </v-icon>
                                 </div>
                             </th>
                             <th>Actions</th>
@@ -167,7 +178,8 @@
                             </td>
                             <td>
                                 <div class="d-flex">
-                                    <v-skeleton-loader type="button" width="32" height="32" class="mr-1"></v-skeleton-loader>
+                                    <v-skeleton-loader type="button" width="32" height="32"
+                                        class="mr-1"></v-skeleton-loader>
                                     <v-skeleton-loader type="button" width="32" height="32"></v-skeleton-loader>
                                 </div>
                             </td>
@@ -204,7 +216,8 @@
                                 <td>{{ formatDate(log.created_at) }}</td>
                                 <td>
                                     <v-btn size="small" icon="mdi-eye" @click="viewLog(log)" variant="text"></v-btn>
-                                    <v-btn size="small" icon="mdi-delete" @click="deleteLog(log)" variant="text" color="error"></v-btn>
+                                    <v-btn size="small" icon="mdi-delete" @click="deleteLog(log)" variant="text"
+                                        color="error"></v-btn>
                                 </td>
                             </tr>
                             <tr v-if="logs.length === 0">
@@ -214,30 +227,28 @@
                     </tbody>
                 </v-table>
 
-                <!-- Pagination and Records Info -->
-                <div class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                <!-- Pagination -->
+                <div
+                    class="d-flex flex-column flex-md-row justify-space-between align-center align-md-start gap-3 mt-4">
+                    <!-- Left: Records Info -->
                     <div class="text-caption text-grey">
                         <span v-if="logs.length > 0 && pagination.total > 0">
-                            Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to 
-                            <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of 
-                            <strong>{{ pagination.total.toLocaleString() }}</strong> records
-                            <span v-if="pagination.last_page > 1" class="ml-2">
-                                (Page {{ currentPage }} of {{ pagination.last_page }})
+                            <span v-if="perPage === 'all'">
+                                Showing <strong>all {{ pagination.total.toLocaleString() }}</strong> records
+                            </span>
+                            <span v-else>
+                                Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total) }}</strong> of
+                                <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
-                        <span v-else>
-                            No records found
-                        </span>
+                        <span v-else>No records found</span>
                     </div>
-                    <div v-if="pagination.last_page > 1" class="d-flex align-center gap-2">
-                        <v-pagination 
-                            v-model="currentPage" 
-                            :length="pagination.last_page"
-                            :total-visible="7"
-                            density="comfortable"
-                            @update:model-value="loadLogs">
-                        </v-pagination>
-                    </div>
+
+                    <!-- Right: Items Per Page and Pagination -->
+                    <PaginationControls v-model="currentPage" :pagination="pagination" :per-page-value="perPage"
+                        :per-page-options="perPageOptions" @update:per-page="onPerPageUpdate"
+                        @page-change="onPageChange" />
                 </div>
             </v-card-text>
         </v-card>
@@ -254,14 +265,16 @@
                             </div>
                             <div class="mb-3">
                                 <strong>User:</strong>
-                                <v-chip v-if="selectedLog.user" size="small" color="primary" variant="text" class="ml-2">
+                                <v-chip v-if="selectedLog.user" size="small" color="primary" variant="text"
+                                    class="ml-2">
                                     {{ selectedLog.user.name }} ({{ selectedLog.user.email }})
                                 </v-chip>
                                 <span v-else class="text-grey ml-2">-</span>
                             </div>
                             <div class="mb-3">
                                 <strong>Status:</strong>
-                                <v-chip :color="selectedLog.status === 'success' ? 'success' : 'error'" size="small" class="ml-2">
+                                <v-chip :color="selectedLog.status === 'success' ? 'success' : 'error'" size="small"
+                                    class="ml-2">
                                     {{ selectedLog.status }}
                                 </v-chip>
                             </div>
@@ -272,12 +285,16 @@
                             </div>
                             <div class="mb-3">
                                 <strong>Failure Reason:</strong>
-                                <span v-if="selectedLog.failure_reason" class="text-grey ml-2">{{ selectedLog.failure_reason }}</span>
+                                <span v-if="selectedLog.failure_reason" class="text-grey ml-2">{{
+                                    selectedLog.failure_reason
+                                    }}</span>
                                 <span v-else class="text-grey ml-2">-</span>
                             </div>
                             <div class="mb-3">
                                 <strong>Logged In At:</strong>
-                                <span v-if="selectedLog.logged_in_at" class="ml-2">{{ formatDate(selectedLog.logged_in_at) }}</span>
+                                <span v-if="selectedLog.logged_in_at" class="ml-2">{{
+                                    formatDate(selectedLog.logged_in_at)
+                                    }}</span>
                                 <span v-else class="text-grey ml-2">-</span>
                             </div>
                         </v-col>
@@ -285,7 +302,8 @@
                             <div class="mb-2">
                                 <strong>User Agent:</strong>
                             </div>
-                            <v-textarea :value="selectedLog.user_agent || '-'" readonly variant="outlined" density="compact" rows="3"></v-textarea>
+                            <v-textarea :value="selectedLog.user_agent || '-'" readonly variant="outlined"
+                                density="compact" rows="3"></v-textarea>
                         </v-col>
                         <v-col cols="12">
                             <div class="mb-2">
@@ -305,9 +323,14 @@
 
 <script>
 import commonMixin from '../../../mixins/commonMixin';
-import moment from 'moment';
+import PaginationControls from '../../common/PaginationControls.vue';
+import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { formatDateShort } from '../../../utils/formatters';
 
 export default {
+    components: {
+        PaginationControls
+    },
     mixins: [commonMixin],
     data() {
         return {
@@ -326,6 +349,11 @@ export default {
             ],
             viewDialog: false,
             selectedLog: null,
+            // Pagination state - using centralized defaults
+            currentPage: defaultPaginationState.currentPage,
+            perPage: defaultPaginationState.perPage,
+            perPageOptions: defaultPaginationState.perPageOptions,
+            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -391,35 +419,44 @@ export default {
             }
         },
         formatDate(date) {
-            if (!date) return '-';
-            return moment(date).format('YYYY-MM-DD HH:mm:ss');
+            return formatDateShort(date);
         },
         truncateText(text, length) {
             if (!text) return '-';
             return text.length > length ? text.substring(0, length) + '...' : text;
         },
+        buildPaginationParams(additionalParams = {}) {
+            return paginationUtils.buildPaginationParams(
+                this.currentPage,
+                this.perPage,
+                additionalParams,
+                this.sortBy,
+                this.sortDirection
+            );
+        },
+        updatePagination(responseData) {
+            paginationUtils.updatePagination(this, responseData);
+        },
+        resetPagination() {
+            paginationUtils.resetPagination(this);
+        },
         onPerPageChange() {
             this.resetPagination();
             this.loadLogs();
         },
+        onPerPageUpdate(value) {
+            this.perPage = value;
+            this.onPerPageChange();
+        },
+        onPageChange(page) {
+            this.currentPage = page;
+            this.loadLogs();
+        },
         onSort(field) {
             this.handleSort(field);
+            this.currentPage = 1; // Reset to first page when sorting changes
             this.loadLogs();
         }
     }
 };
 </script>
-
-<style scoped>
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-}
-
-.page-title {
-    margin: 0;
-}
-</style>
-
