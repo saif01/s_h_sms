@@ -482,7 +482,30 @@ Draft → Pending → Partial → Paid
 
 ### 5.1 Dashboard Overview
 
-The dashboard provides real-time business insights:
+The dashboard provides real-time business insights with AI-powered analysis:
+
+**AI-Powered Business Insights** (Top Section):
+- **Sales Forecast**: Predictive analytics showing expected sales for next week/month based on trend analysis
+- **Anomaly Detection**: Automatic alerts for:
+  - Sudden sales drops (high/medium priority)
+  - Low stock situations
+  - High customer dues
+  - Negative profit warnings
+- **Performance Score**: Overall business health score (0-100) with:
+  - Color-coded indicators (green/blue/yellow/red)
+  - Performance label and description
+  - Visual circular progress indicator
+- **Smart Recommendations**: Actionable business advice with priority levels:
+  - Boost sales performance
+  - Restock inventory items
+  - Optimize profit margins
+  - Collect outstanding payments
+  - Leverage top-performing products
+  - Capitalize on growth momentum
+- **Trend Insights**: Real-time trend analysis chips showing:
+  - Sales growth/decline percentages
+  - Profit margin indicators
+  - Customer activity metrics
 
 **Key Metrics:**
 - Today's Sales (with growth %)
