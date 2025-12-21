@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api\reports;
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
 use App\Models\Purchase;
+use App\Models\Customer;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DueReportController extends Controller
 {
@@ -109,8 +112,82 @@ class DueReportController extends Controller
      */
     public function exportPDF(Request $request)
     {
-        // Implementation would use DomPDF package
-        return response()->json(['message' => 'PDF export functionality to be implemented']);
+        $partyType = $request->party_type ?? 'customer';
+        
+        if ($partyType === 'customer') {
+            $query = Sale::with('customer')
+                ->select('sales.*')
+                ->selectRaw('customers.name as party_name')
+                ->selectRaw('customers.id as party_id')
+                ->selectRaw('sales.balance_amount as due_amount')
+                ->leftJoin('customers', 'sales.customer_id', '=', 'customers.id')
+                ->where('sales.balance_amount', '>', 0);
+            
+            if ($request->party_id) {
+                $query->where('sales.customer_id', $request->party_id);
+            }
+        } else {
+            $query = Purchase::with('supplier')
+                ->select('purchases.*')
+                ->selectRaw('suppliers.name as party_name')
+                ->selectRaw('suppliers.id as party_id')
+                ->selectRaw('purchases.balance_amount as due_amount')
+                ->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+                ->where('purchases.balance_amount', '>', 0);
+            
+            if ($request->party_id) {
+                $query->where('purchases.supplier_id', $request->party_id);
+            }
+        }
+
+        if ($request->overdue_only) {
+            $query->whereNotNull('due_date')
+                ->whereDate('due_date', '<', now());
+        }
+
+        // Get all due records (no pagination for PDF)
+        $allDue = $query->orderBy('due_date', 'asc')->get();
+
+        // Calculate summary
+        $summary = [
+            'total_due' => (float) ($allDue->sum('due_amount') ?? 0),
+            'overdue_amount' => (float) ($allDue->filter(function ($item) {
+                return $item->due_date && $item->due_date < now();
+            })->sum('due_amount') ?? 0),
+            'total_parties' => (int) $allDue->unique('party_id')->count(),
+        ];
+
+        // Get party name if filter is applied
+        $partyName = null;
+        if ($request->party_id) {
+            if ($partyType === 'customer') {
+                $party = Customer::find($request->party_id);
+            } else {
+                $party = Supplier::find($request->party_id);
+            }
+            $partyName = $party ? $party->name : null;
+        }
+
+        // Prepare data for PDF
+        $data = [
+            'due' => $allDue,
+            'summary' => $summary,
+            'partyType' => $partyType,
+            'filters' => [
+                'party_id' => $request->party_id,
+                'overdue_only' => $request->overdue_only,
+            ],
+            'partyName' => $partyName,
+        ];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('reports.due-report', $data);
+        $pdf->setPaper('a4', 'landscape');
+        
+        // Generate filename
+        $filename = 'due_report_' . $partyType . '_' . date('Y-m-d_His') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }
 

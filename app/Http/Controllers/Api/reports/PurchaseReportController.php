@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\Purchase;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseReportController extends Controller
 {
@@ -100,8 +102,71 @@ class PurchaseReportController extends Controller
      */
     public function exportPDF(Request $request)
     {
-        // Implementation would use DomPDF package
-        return response()->json(['message' => 'PDF export functionality to be implemented']);
+        $query = Purchase::with(['supplier', 'items.product'])
+            ->select('purchases.*')
+            ->selectRaw('suppliers.name as supplier_name');
+        
+        $query->leftJoin('suppliers', 'purchases.supplier_id', '=', 'suppliers.id');
+
+        // Apply filters
+        if ($request->date_from) {
+            $query->whereDate('purchases.invoice_date', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->whereDate('purchases.invoice_date', '<=', $request->date_to);
+        }
+        if ($request->supplier_id) {
+            $query->where('purchases.supplier_id', $request->supplier_id);
+        }
+        if ($request->status) {
+            $query->where('purchases.status', $request->status);
+        }
+
+        // Get all purchases (no pagination for PDF)
+        $allPurchases = $query->orderBy('purchases.invoice_date', 'desc')->get();
+
+        // For financial calculations: exclude cancelled purchases unless explicitly filtered by cancelled status
+        $purchasesForFinancials = $allPurchases;
+        if (!$request->status || $request->status !== 'cancelled') {
+            $purchasesForFinancials = $allPurchases->where('status', '!=', 'cancelled');
+        }
+        
+        // Calculate summary
+        $summary = [
+            'total_purchases' => (float) ($purchasesForFinancials->sum('total_amount') ?? 0),
+            'total_paid' => (float) ($purchasesForFinancials->sum('paid_amount') ?? 0),
+            'total_due' => (float) ($purchasesForFinancials->sum('balance_amount') ?? 0),
+            'total_count' => (int) $allPurchases->count(),
+        ];
+
+        // Get supplier name if filter is applied
+        $supplierName = null;
+        if ($request->supplier_id) {
+            $supplier = Supplier::find($request->supplier_id);
+            $supplierName = $supplier ? $supplier->name : null;
+        }
+
+        // Prepare data for PDF
+        $data = [
+            'purchases' => $allPurchases,
+            'summary' => $summary,
+            'filters' => [
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
+                'supplier_id' => $request->supplier_id,
+                'status' => $request->status,
+            ],
+            'supplierName' => $supplierName,
+        ];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('reports.purchase-report', $data);
+        $pdf->setPaper('a4', 'landscape');
+        
+        // Generate filename
+        $filename = 'purchase_report_' . date('Y-m-d_His') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }
 

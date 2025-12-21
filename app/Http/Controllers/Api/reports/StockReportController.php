@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api\reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\Stock;
+use App\Models\Warehouse;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class StockReportController extends Controller
 {
@@ -116,8 +119,87 @@ class StockReportController extends Controller
      */
     public function exportPDF(Request $request)
     {
-        // Implementation would use DomPDF package
-        return response()->json(['message' => 'PDF export functionality to be implemented']);
+        $query = Stock::with(['product.category', 'warehouse'])
+            ->select('stocks.*')
+            ->selectRaw('products.name as product_name')
+            ->selectRaw('products.sku as sku')
+            ->selectRaw('products.purchase_price as purchase_price')
+            ->selectRaw('products.minimum_stock_level as minimum_stock_level')
+            ->selectRaw('categories.name as category_name')
+            ->selectRaw('warehouses.name as warehouse_name');
+        
+        $query->leftJoin('products', 'stocks.product_id', '=', 'products.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->leftJoin('warehouses', 'stocks.warehouse_id', '=', 'warehouses.id');
+
+        // Apply filters
+        if ($request->warehouse_id) {
+            $query->where('stocks.warehouse_id', $request->warehouse_id);
+        }
+        if ($request->category_id) {
+            $query->where('products.category_id', $request->category_id);
+        }
+        if ($request->low_stock_only) {
+            $query->whereColumn('stocks.quantity', '<=', 'products.minimum_stock_level');
+        }
+
+        // Get all stock (no pagination for PDF)
+        $allStock = $query->orderBy('products.name', 'asc')->get();
+
+        // Calculate summary
+        $totalStockValue = $allStock->sum(function ($item) {
+            return $item->quantity * $item->purchase_price;
+        });
+
+        $lowStockCount = $allStock->filter(function ($item) {
+            return $item->quantity > 0 && $item->quantity <= $item->minimum_stock_level;
+        })->count();
+
+        $outOfStockCount = $allStock->filter(function ($item) {
+            return $item->quantity == 0;
+        })->count();
+
+        $summary = [
+            'total_products' => $allStock->count(),
+            'total_stock_value' => (float) $totalStockValue,
+            'low_stock_count' => (int) $lowStockCount,
+            'out_of_stock_count' => (int) $outOfStockCount,
+        ];
+
+        // Get warehouse/category names if filters are applied
+        $warehouseName = null;
+        if ($request->warehouse_id) {
+            $warehouse = Warehouse::find($request->warehouse_id);
+            $warehouseName = $warehouse ? $warehouse->name : null;
+        }
+
+        $categoryName = null;
+        if ($request->category_id) {
+            $category = Category::find($request->category_id);
+            $categoryName = $category ? $category->name : null;
+        }
+
+        // Prepare data for PDF
+        $data = [
+            'stock' => $allStock,
+            'summary' => $summary,
+            'filters' => [
+                'warehouse_id' => $request->warehouse_id,
+                'category_id' => $request->category_id,
+                'low_stock_only' => $request->low_stock_only,
+            ],
+            'warehouseName' => $warehouseName,
+            'categoryName' => $categoryName,
+        ];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('reports.stock-report', $data);
+        $pdf->setPaper('a4', 'landscape');
+        
+        // Generate filename
+        $filename = 'stock_report_' . date('Y-m-d_His') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }
 
