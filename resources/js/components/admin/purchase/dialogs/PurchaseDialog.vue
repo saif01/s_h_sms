@@ -260,16 +260,39 @@ export default {
                 console.warn('ProductOptions is not an array:', this.productOptions);
                 return [];
             }
-            if (this.productOptions.length === 0) {
-                console.warn('ProductOptions is empty');
-                return [];
+
+            // Return all options that have both label and value, ensuring values are numbers
+            const valid = this.productOptions
+                .filter(option => {
+                    const hasLabel = option && (option.label || option.title);
+                    const hasValue = option && (option.value !== undefined && option.value !== null);
+                    return hasLabel && hasValue;
+                })
+                .map(option => ({
+                    ...option,
+                    value: Number(option.value)
+                }));
+
+            // If editing, add products from purchase items that might not be in the options
+            // (e.g., inactive or deleted products)
+            if (this.editingPurchase && this.editingPurchase.items) {
+                const existingValues = new Set(valid.map(opt => opt.value));
+
+                this.editingPurchase.items.forEach(item => {
+                    const productId = item.product_id ? Number(item.product_id) : null;
+                    if (productId && !existingValues.has(productId)) {
+                        // Product not in options, add it with product name if available
+                        const productName = item.product?.name || `Product #${productId}`;
+                        const productSku = item.product?.sku || '';
+                        valid.push({
+                            label: productSku ? `${productName} (${productSku})` : productName,
+                            value: productId
+                        });
+                        existingValues.add(productId); // Prevent duplicates
+                    }
+                });
             }
-            // Return all options that have both label and value
-            const valid = this.productOptions.filter(option => {
-                const hasLabel = option && (option.label || option.title);
-                const hasValue = option && (option.value !== undefined && option.value !== null);
-                return hasLabel && hasValue;
-            });
+
             if (valid.length === 0 && this.productOptions.length > 0) {
                 console.warn('No valid product options found. ProductOptions:', this.productOptions);
             }
@@ -340,15 +363,15 @@ export default {
         initializeForm(purchase) {
             this.activeTab = 'basic';
             this.localForm = {
-                supplier_id: purchase.supplier_id,
-                warehouse_id: purchase.warehouse_id,
-                grn_id: purchase.grn_id,
+                supplier_id: purchase.supplier_id ? Number(purchase.supplier_id) : null,
+                warehouse_id: purchase.warehouse_id ? Number(purchase.warehouse_id) : null,
+                grn_id: purchase.grn_id ? Number(purchase.grn_id) : null,
                 invoice_date: purchase.invoice_date ? (purchase.invoice_date.includes('T') ? purchase.invoice_date.split('T')[0] : purchase.invoice_date) : new Date().toISOString().split('T')[0],
                 due_date: purchase.due_date ? (purchase.due_date.includes('T') ? purchase.due_date.split('T')[0] : purchase.due_date) : null,
                 shipping_cost: purchase.shipping_cost || 0,
                 notes: purchase.notes || '',
                 items: purchase.items?.map(item => ({
-                    product_id: item.product_id,
+                    product_id: item.product_id ? Number(item.product_id) : null,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     discount: item.discount || 0,

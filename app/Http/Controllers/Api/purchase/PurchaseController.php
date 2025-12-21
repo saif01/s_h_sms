@@ -160,11 +160,11 @@ class PurchaseController extends Controller
                         $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
                         $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
 
-                        $stock->update([
-                            'quantity' => $newQty,
-                            'average_cost' => $avgCost,
-                            'total_value' => $newValue,
-                        ]);
+                        $stock->quantity = $newQty;
+                        $stock->average_cost = $avgCost;
+                        $stock->total_value = $newValue;
+                        $stock->save();
+                        
                         $balanceAfter = $newQty;
                         $valueBefore = $oldValue;
                         $valueAfter = $newValue;
@@ -181,6 +181,9 @@ class PurchaseController extends Controller
                         $valueAfter = $stock->total_value;
                         $avgCost = $purchaseItem->unit_price;
                     }
+                    
+                    // Refresh stock to ensure it's saved correctly
+                    $stock->refresh();
 
                     StockLedger::create([
                         'product_id' => $purchaseItem->product_id,
@@ -510,11 +513,11 @@ class PurchaseController extends Controller
                     $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
                     $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
 
-                    $stock->update([
-                        'quantity' => $newQty,
-                        'average_cost' => $avgCost,
-                        'total_value' => $newValue,
-                    ]);
+                    $stock->quantity = $newQty;
+                    $stock->average_cost = $avgCost;
+                    $stock->total_value = $newValue;
+                    $stock->save();
+                    
                     $balanceAfter = $newQty;
                     $valueBefore = $oldValue;
                     $valueAfter = $newValue;
@@ -531,6 +534,9 @@ class PurchaseController extends Controller
                     $valueAfter = $stock->total_value;
                     $avgCost = $purchaseItem->unit_price;
                 }
+                
+                // Refresh stock to ensure it's saved correctly
+                $stock->refresh();
 
                 // Create stock ledger entry
                 StockLedger::create([
