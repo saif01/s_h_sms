@@ -23,6 +23,8 @@ class Warehouse extends Model
         'email',
         'manager_id',
         'is_active',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -42,5 +44,15 @@ class Warehouse extends Model
     public function stockLedgers(): HasMany
     {
         return $this->hasMany(StockLedger::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

@@ -97,7 +97,10 @@ class CurrentProjectSeeder extends Seeder
         foreach ($warehousesData as $warehouseData) {
             $warehouses[] = Warehouse::firstOrCreate(
                 ['code' => $warehouseData['code']],
-                $warehouseData
+                array_merge($warehouseData, [
+                    'created_by' => $adminUser?->id,
+                    'updated_by' => $adminUser?->id,
+                ])
             );
         }
         $warehouse = $warehouses[0]; // Use first warehouse for sample stock and sale

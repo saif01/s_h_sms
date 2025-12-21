@@ -71,7 +71,11 @@ class WarehouseController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        // Set created_by to current user
+        $validated['created_by'] = auth()->id();
+
         $warehouse = Warehouse::create($validated);
+        $warehouse->load(['createdBy', 'updatedBy']);
 
         return response()->json([
             'message' => 'Warehouse created successfully',
@@ -84,6 +88,7 @@ class WarehouseController extends Controller
      */
     public function show(Warehouse $warehouse)
     {
+        $warehouse->load(['createdBy', 'updatedBy']);
         return response()->json([
             'warehouse' => $warehouse,
         ]);
@@ -107,7 +112,11 @@ class WarehouseController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        // Set updated_by to current user
+        $validated['updated_by'] = auth()->id();
+
         $warehouse->update($validated);
+        $warehouse->load(['createdBy', 'updatedBy']);
 
         return response()->json([
             'message' => 'Warehouse updated successfully',

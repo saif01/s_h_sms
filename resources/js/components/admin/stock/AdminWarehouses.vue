@@ -159,10 +159,6 @@
 
         <!-- View Warehouse Dialog -->
         <WarehouseViewDialog v-model="viewDialog" :warehouse="selectedWarehouse" />
-
-        <!-- Delete Confirmation -->
-        <WarehouseDeleteDialog v-model="deleteDialog" :warehouse="selectedWarehouse" :deleting="deleting"
-            @confirm="deleteWarehouse" />
     </v-container>
 </template>
 
@@ -173,7 +169,6 @@ import PaginationControls from '../../common/PaginationControls.vue';
 import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 import WarehouseDialog from './dialogs/WarehouseDialog.vue';
 import WarehouseViewDialog from './dialogs/WarehouseViewDialog.vue';
-import WarehouseDeleteDialog from './dialogs/WarehouseDeleteDialog.vue';
 
 export default {
     name: 'AdminWarehouses',
@@ -181,7 +176,6 @@ export default {
         PaginationControls,
         WarehouseDialog,
         WarehouseViewDialog,
-        WarehouseDeleteDialog,
     },
     mixins: [commonMixin],
     data() {
@@ -189,9 +183,7 @@ export default {
             warehouses: [],
             dialog: false,
             viewDialog: false,
-            deleteDialog: false,
             saving: false,
-            deleting: false,
             selectedWarehouse: null,
             // Pagination state - using centralized defaults
             currentPage: defaultPaginationState.currentPage,
@@ -262,24 +254,39 @@ export default {
                 this.saving = false;
             }
         },
-        confirmDelete(warehouse) {
-            this.selectedWarehouse = warehouse;
-            this.deleteDialog = true;
-        },
-        async deleteWarehouse() {
-            if (!this.selectedWarehouse?.id) return;
+        async confirmDelete(warehouse) {
+            // Show SweetAlert confirmation
+            const result = await window.Swal.fire({
+                title: 'Are you sure?',
+                text: `Do you want to delete "${warehouse.name}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
 
-            this.deleting = true;
+            if (!result.isConfirmed) {
+                return;
+            }
+
             try {
-                await axios.delete(`/api/v1/warehouses/${this.selectedWarehouse.id}`);
-                this.showSuccess('Warehouse deleted successfully');
-                this.deleteDialog = false;
-                this.selectedWarehouse = null;
+                await axios.delete(`/api/v1/warehouses/${warehouse.id}`);
+
+                // Show success message
+                await window.Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'Warehouse has been deleted successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
                 await this.loadWarehouses();
             } catch (error) {
                 this.handleApiError(error, 'Failed to delete warehouse');
-            } finally {
-                this.deleting = false;
             }
         },
         buildPaginationParams(additionalParams = {}) {
