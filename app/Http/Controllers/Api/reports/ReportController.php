@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
@@ -490,7 +491,7 @@ class ReportController extends Controller
         } else {
             // Group by date period
             $grouped = $items->groupBy(function ($item) use ($groupBy) {
-                $date = $item->invoice_date;
+                $date = Carbon::parse($item->invoice_date);
                 if ($groupBy === 'daily') {
                     return $date->format('Y-m-d');
                 } elseif ($groupBy === 'weekly') {
