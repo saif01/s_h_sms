@@ -87,6 +87,7 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'access-dashboard',
                     'view-products',
+                    'view-warehouses',
                     'view-sales',
                     'create-sale',
                     'manage-customers',

@@ -77,7 +77,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/user', [AuthController::class, 'user']);
 
         // Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->middleware('permission:access-dashboard');
 
         // Upload routes
         Route::post('upload/image', [UploadController::class, 'uploadImage']);
@@ -86,82 +87,89 @@ Route::prefix('v1')->group(function () {
         Route::delete('upload/image', [UploadController::class, 'deleteImage']);
 
         // Settings
-        Route::get('settings', [SettingController::class, 'index']);
-        Route::post('settings', [SettingController::class, 'update']);
+        Route::get('settings', [SettingController::class, 'index'])->middleware('permission:manage-settings');
+        Route::post('settings', [SettingController::class, 'update'])->middleware('permission:manage-settings');
 
         // Users & Roles
-        Route::get('users/roles', [UserController::class, 'roles']);
-        Route::apiResource('users', UserController::class);
+        Route::get('users/roles', [UserController::class, 'roles'])->middleware('permission:manage-users');
+        Route::apiResource('users', UserController::class)->middleware('permission:manage-users');
 
         // Role Management
-        Route::get('permissions', [RoleController::class, 'permissions']);
-        Route::put('roles/{id}/permissions', [RoleController::class, 'syncPermissions']);
-        Route::apiResource('roles', RoleController::class);
+        Route::get('permissions', [RoleController::class, 'permissions'])->middleware('permission:manage-roles');
+        Route::put('roles/{id}/permissions', [RoleController::class, 'syncPermissions'])->middleware('permission:manage-roles');
+        Route::apiResource('roles', RoleController::class)->middleware('permission:manage-roles');
 
         // Permission Management
-        Route::get('permissions/groups', [PermissionController::class, 'groups']);
-        Route::post('permissions/groups/rename', [PermissionController::class, 'renameGroup']);
-        Route::post('permissions/groups/delete', [PermissionController::class, 'deleteGroup']);
-        Route::apiResource('permissions', PermissionController::class);
+        Route::get('permissions/groups', [PermissionController::class, 'groups'])->middleware('permission:manage-roles');
+        Route::post('permissions/groups/rename', [PermissionController::class, 'renameGroup'])->middleware('permission:manage-roles');
+        Route::post('permissions/groups/delete', [PermissionController::class, 'deleteGroup'])->middleware('permission:manage-roles');
+        Route::apiResource('permissions', PermissionController::class)->middleware('permission:manage-roles');
 
         // Login Logs
-        Route::get('login-logs/statistics', [LoginLogController::class, 'statistics']);
-        Route::apiResource('login-logs', LoginLogController::class)->only(['index', 'show', 'destroy']);
+        Route::get('login-logs/statistics', [LoginLogController::class, 'statistics'])->middleware('permission:view-login-logs');
+        Route::apiResource('login-logs', LoginLogController::class)->only(['index', 'show', 'destroy'])->middleware('permission:view-login-logs');
 
         // Products & Categories
-        Route::get('products/categories', [ProductController::class, 'categories']);
-        Route::get('products/units', [ProductController::class, 'units']);
-        Route::get('products/warehouses', [ProductController::class, 'warehouses']);
-        Route::apiResource('products', ProductController::class);
-        Route::apiResource('categories', CategoryController::class);
+        Route::get('products/categories', [ProductController::class, 'categories'])->middleware('permission:view-products');
+        Route::get('products/units', [ProductController::class, 'units'])->middleware('permission:view-products');
+        Route::get('products/warehouses', [ProductController::class, 'warehouses'])->middleware('permission:view-products');
+        Route::apiResource('products', ProductController::class)->only(['index', 'show'])->middleware('permission:view-products');
+        Route::apiResource('products', ProductController::class)->only(['store'])->middleware('permission:create-products');
+        Route::apiResource('products', ProductController::class)->only(['update'])->middleware('permission:edit-products');
+        Route::apiResource('products', ProductController::class)->only(['destroy'])->middleware('permission:delete-products');
+        Route::apiResource('categories', CategoryController::class)->middleware('permission:manage-categories');
 
         // Stock Management (read-only for reporting/alerts)
-        Route::get('stock-ledger', [StockLedgerController::class, 'index']);
-        Route::get('stock-ledger/warehouses', [StockLedgerController::class, 'warehouses']);
-        Route::get('stock-ledger/{stock_ledger}', [StockLedgerController::class, 'show']);
-        Route::apiResource('stocks', StockController::class)->only(['index', 'show', 'store']);
+        Route::get('stock-ledger', [StockLedgerController::class, 'index'])->middleware('permission:view-stock-ledger');
+        Route::get('stock-ledger/warehouses', [StockLedgerController::class, 'warehouses'])->middleware('permission:view-stock-ledger');
+        Route::get('stock-ledger/{stock_ledger}', [StockLedgerController::class, 'show'])->middleware('permission:view-stock-ledger');
+        Route::apiResource('stocks', StockController::class)->only(['index', 'show'])->middleware('permission:view-stock-levels,manage-warehouses');
+        Route::apiResource('stocks', StockController::class)->only(['store'])->middleware('permission:manage-warehouses');
 
         // Purchases / Suppliers
-        Route::apiResource('purchases', PurchaseController::class);
-        Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
-        Route::apiResource('suppliers', SupplierController::class);
+        Route::apiResource('purchases', PurchaseController::class)->only(['index', 'show'])->middleware('permission:view-purchases');
+        Route::apiResource('purchases', PurchaseController::class)->only(['store', 'update', 'destroy'])->middleware('permission:create-purchase');
+        Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive'])->middleware('permission:create-purchase');
+        Route::apiResource('suppliers', SupplierController::class)->middleware('permission:manage-suppliers');
 
         // Sales / Customers / Payments
-        Route::apiResource('sales', SaleController::class);
-        Route::apiResource('customers', CustomerController::class);
-        Route::get('payments', [PaymentController::class, 'index']);
-        Route::post('payments', [PaymentController::class, 'store']);
+        Route::apiResource('sales', SaleController::class)->only(['index', 'show'])->middleware('permission:view-sales');
+        Route::apiResource('sales', SaleController::class)->only(['store', 'update', 'destroy'])->middleware('permission:create-sale');
+        Route::apiResource('customers', CustomerController::class)->middleware('permission:manage-customers');
+        Route::get('payments', [PaymentController::class, 'index'])->middleware('permission:view-payments');
+        Route::post('payments', [PaymentController::class, 'store'])->middleware('permission:record-payment');
 
         // Units & Warehouses
-        Route::apiResource('units', UnitController::class);
-        Route::apiResource('warehouses', WarehouseController::class);
+        Route::apiResource('units', UnitController::class)->middleware('permission:manage-units');
+        Route::apiResource('warehouses', WarehouseController::class)->only(['index', 'show'])->middleware('permission:view-warehouses,manage-warehouses');
+        Route::apiResource('warehouses', WarehouseController::class)->only(['store', 'update', 'destroy'])->middleware('permission:manage-warehouses');
 
         // Reports
-        Route::prefix('reports')->group(function () {
+        Route::prefix('reports')->middleware('permission:view-reports')->group(function () {
             // Sales Reports
             Route::get('sales', [ReportController::class, 'salesReport']);
-            Route::get('sales/export/excel', [ReportController::class, 'exportSalesExcel']);
-            Route::get('sales/export/pdf', [ReportController::class, 'exportSalesPDF']);
+            Route::get('sales/export/excel', [ReportController::class, 'exportSalesExcel'])->middleware('permission:export-reports');
+            Route::get('sales/export/pdf', [ReportController::class, 'exportSalesPDF'])->middleware('permission:export-reports');
             
             // Purchase Reports
             Route::get('purchases', [ReportController::class, 'purchaseReport']);
-            Route::get('purchases/export/excel', [ReportController::class, 'exportSalesExcel']);
-            Route::get('purchases/export/pdf', [ReportController::class, 'exportSalesPDF']);
+            Route::get('purchases/export/excel', [ReportController::class, 'exportSalesExcel'])->middleware('permission:export-reports');
+            Route::get('purchases/export/pdf', [ReportController::class, 'exportSalesPDF'])->middleware('permission:export-reports');
             
             // Stock Reports
             Route::get('stock', [ReportController::class, 'stockReport']);
-            Route::get('stock/export/excel', [ReportController::class, 'exportSalesExcel']);
-            Route::get('stock/export/pdf', [ReportController::class, 'exportSalesPDF']);
+            Route::get('stock/export/excel', [ReportController::class, 'exportSalesExcel'])->middleware('permission:export-reports');
+            Route::get('stock/export/pdf', [ReportController::class, 'exportSalesPDF'])->middleware('permission:export-reports');
             
             // Due Reports
             Route::get('due', [ReportController::class, 'dueReport']);
-            Route::get('due/export/excel', [ReportController::class, 'exportSalesExcel']);
-            Route::get('due/export/pdf', [ReportController::class, 'exportSalesPDF']);
+            Route::get('due/export/excel', [ReportController::class, 'exportSalesExcel'])->middleware('permission:export-reports');
+            Route::get('due/export/pdf', [ReportController::class, 'exportSalesPDF'])->middleware('permission:export-reports');
             
             // Profit Reports
             Route::get('profit', [ReportController::class, 'profitReport']);
-            Route::get('profit/export/excel', [ReportController::class, 'exportSalesExcel']);
-            Route::get('profit/export/pdf', [ReportController::class, 'exportSalesPDF']);
+            Route::get('profit/export/excel', [ReportController::class, 'exportSalesExcel'])->middleware('permission:export-reports');
+            Route::get('profit/export/pdf', [ReportController::class, 'exportSalesPDF'])->middleware('permission:export-reports');
         });
     });
 });
