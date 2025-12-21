@@ -215,7 +215,8 @@
                             </span>
                             <span v-else>
                                 Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString() }}</strong> of
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString()
+                                }}</strong> of
                                 <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
@@ -256,10 +257,10 @@
 </template>
 
 <script>
-import commonMixin from '../../../mixins/commonMixin';
-import PaginationControls from '../../common/PaginationControls.vue';
-import DatePicker from '../../common/DatePicker.vue';
-import { paginationMixin } from '../../../utils/pagination.js';
+import commonMixin from '../../../../mixins/commonMixin';
+import PaginationControls from '../../../common/PaginationControls.vue';
+import DatePicker from '../../../common/DatePicker.vue';
+import { paginationMixin } from '../../../../utils/pagination.js';
 
 export default {
     name: 'SalesReports',

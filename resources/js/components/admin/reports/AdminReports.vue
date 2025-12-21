@@ -72,11 +72,11 @@
 </template>
 
 <script>
-import SalesReports from './SalesReports.vue';
-import PurchaseReports from './PurchaseReports.vue';
-import StockReports from './StockReports.vue';
-import DueReports from './DueReports.vue';
-import ProfitReports from './ProfitReports.vue';
+import SalesReports from './tabs/SalesReports.vue';
+import PurchaseReports from './tabs/PurchaseReports.vue';
+import StockReports from './tabs/StockReports.vue';
+import DueReports from './tabs/DueReports.vue';
+import ProfitReports from './tabs/ProfitReports.vue';
 
 export default {
     name: 'AdminReports',

@@ -1,7 +1,7 @@
 <template>
     <div>
         <v-card variant="outlined" class="mb-4">
-            <v-card-title>Profit Report Filters</v-card-title>
+            <v-card-title>Purchase Report Filters</v-card-title>
             <v-card-text>
                 <v-row dense>
                     <v-col cols="12" md="3">
@@ -13,12 +13,11 @@
                             @update:model-value="onDateToChange" />
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="filters.category_id" :items="categories" 
-                            item-value="id" item-title="name" label="Category" clearable />
+                        <v-select v-model="filters.supplier_id" :items="suppliers" item-value="id" item-title="name"
+                            label="Supplier" clearable />
                     </v-col>
                     <v-col cols="12" md="3">
-                        <v-select v-model="filters.group_by" :items="groupByOptions" 
-                            label="Group By" />
+                        <v-select v-model="filters.status" :items="statusOptions" label="Status" clearable />
                     </v-col>
                     <v-col cols="12" class="d-flex gap-2">
                         <v-btn color="primary" @click="generateReport" :loading="loading">
@@ -40,32 +39,32 @@
             <v-col cols="12" sm="3">
                 <v-card color="primary" variant="tonal">
                     <v-card-text>
-                        <div class="text-caption">Total Revenue</div>
-                        <div class="text-h5">${{ summary.total_revenue?.toFixed(2) || 0 }}</div>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-            <v-col cols="12" sm="3">
-                <v-card color="warning" variant="tonal">
-                    <v-card-text>
-                        <div class="text-caption">Total Cost</div>
-                        <div class="text-h5">${{ summary.total_cost?.toFixed(2) || 0 }}</div>
+                        <div class="text-caption">Total Purchases</div>
+                        <div class="text-h5">${{ summary.total_purchases?.toFixed(2) || 0 }}</div>
                     </v-card-text>
                 </v-card>
             </v-col>
             <v-col cols="12" sm="3">
                 <v-card color="success" variant="tonal">
                     <v-card-text>
-                        <div class="text-caption">Gross Profit</div>
-                        <div class="text-h5">${{ summary.gross_profit?.toFixed(2) || 0 }}</div>
+                        <div class="text-caption">Total Paid</div>
+                        <div class="text-h5">${{ summary.total_paid?.toFixed(2) || 0 }}</div>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+            <v-col cols="12" sm="3">
+                <v-card color="warning" variant="tonal">
+                    <v-card-text>
+                        <div class="text-caption">Total Due</div>
+                        <div class="text-h5">${{ summary.total_due?.toFixed(2) || 0 }}</div>
                     </v-card-text>
                 </v-card>
             </v-col>
             <v-col cols="12" sm="3">
                 <v-card color="info" variant="tonal">
                     <v-card-text>
-                        <div class="text-caption">Profit Margin</div>
-                        <div class="text-h5">{{ summary.profit_margin?.toFixed(2) || 0 }}%</div>
+                        <div class="text-caption">Total Orders</div>
+                        <div class="text-h5">{{ summary.total_count || 0 }}</div>
                     </v-card-text>
                 </v-card>
             </v-col>
@@ -73,46 +72,37 @@
 
         <!-- Report Table -->
         <v-card variant="outlined">
-            <v-data-table :headers="headers" :items="reportData" :loading="loading" 
-                :items-per-page="25">
-                <template #item.revenue="{ item }">
-                    ${{ parseFloat(item.revenue || 0).toFixed(2) }}
+            <v-data-table :headers="headers" :items="reportData" :loading="loading" :items-per-page="25">
+                <template #item.invoice_date="{ item }">
+                    {{ formatDate(item.invoice_date) }}
                 </template>
-                <template #item.cost="{ item }">
-                    ${{ parseFloat(item.cost || 0).toFixed(2) }}
+                <template #item.total_amount="{ item }">
+                    ${{ parseFloat(item.total_amount).toFixed(2) }}
                 </template>
-                <template #item.discount="{ item }">
-                    ${{ parseFloat(item.discount || 0).toFixed(2) }}
+                <template #item.paid_amount="{ item }">
+                    ${{ parseFloat(item.paid_amount).toFixed(2) }}
                 </template>
-                <template #item.profit="{ item }">
-                    <v-chip :color="item.profit >= 0 ? 'success' : 'error'" size="small">
-                        ${{ parseFloat(item.profit || 0).toFixed(2) }}
+                <template #item.balance_amount="{ item }">
+                    <span :class="item.balance_amount > 0 ? 'text-error' : 'text-success'">
+                        ${{ parseFloat(item.balance_amount).toFixed(2) }}
+                    </span>
+                </template>
+                <template #item.status="{ item }">
+                    <v-chip :color="getStatusColor(item.status)" size="small">
+                        {{ item.status }}
                     </v-chip>
                 </template>
-                <template #item.profit_margin="{ item }">
-                    {{ parseFloat(item.profit_margin || 0).toFixed(2) }}%
-                </template>
             </v-data-table>
-        </v-card>
-
-        <!-- Profit Chart -->
-        <v-card variant="outlined" class="mt-4" v-if="chartData.length">
-            <v-card-title>Profit Trend</v-card-title>
-            <v-card-text>
-                <div class="text-center text-caption">
-                    Chart visualization would go here (integrate with Chart.js or similar)
-                </div>
-            </v-card-text>
         </v-card>
     </div>
 </template>
 
 <script>
 import axios from '@/utils/axios.config';
-import DatePicker from '../../common/DatePicker.vue';
+import DatePicker from '../../../common/DatePicker.vue';
 
 export default {
-    name: 'ProfitReports',
+    name: 'PurchaseReports',
     components: {
         DatePicker
     },
@@ -122,69 +112,66 @@ export default {
             filters: {
                 date_from: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
                 date_to: new Date().toISOString().split('T')[0],
-                category_id: null,
-                group_by: 'daily',
+                supplier_id: null,
+                status: null,
             },
             reportData: [],
-            chartData: [],
             summary: null,
-            categories: [],
+            suppliers: [],
             headers: [
-                { title: 'Period', key: 'period' },
-                { title: 'Product/Category', key: 'name' },
-                { title: 'Qty Sold', key: 'quantity_sold', align: 'center' },
-                { title: 'Revenue', key: 'revenue', align: 'end' },
-                { title: 'Cost', key: 'cost', align: 'end' },
-                { title: 'Discount', key: 'discount', align: 'end' },
-                { title: 'Profit', key: 'profit', align: 'end' },
-                { title: 'Margin %', key: 'profit_margin', align: 'end' },
+                { title: 'Invoice #', key: 'invoice_number' },
+                { title: 'Date', key: 'invoice_date' },
+                { title: 'Supplier', key: 'supplier_name' },
+                { title: 'Total', key: 'total_amount', align: 'end' },
+                { title: 'Paid', key: 'paid_amount', align: 'end' },
+                { title: 'Due', key: 'balance_amount', align: 'end' },
+                { title: 'Status', key: 'status' },
             ],
-            groupByOptions: [
-                { title: 'Daily', value: 'daily' },
-                { title: 'Weekly', value: 'weekly' },
-                { title: 'Monthly', value: 'monthly' },
-                { title: 'By Product', value: 'product' },
-                { title: 'By Category', value: 'category' },
+            statusOptions: [
+                { title: 'Draft', value: 'draft' },
+                { title: 'Pending', value: 'pending' },
+                { title: 'Partial', value: 'partial' },
+                { title: 'Paid', value: 'paid' },
+                { title: 'Cancelled', value: 'cancelled' },
             ],
         };
     },
     mounted() {
-        this.fetchCategories();
+        this.fetchSuppliers();
         this.generateReport();
     },
     methods: {
-        async fetchCategories() {
+        async fetchSuppliers() {
             try {
-                const { data } = await axios.get('/api/v1/categories');
-                this.categories = data.data || data.categories || [];
+                const { data } = await axios.get('/api/v1/suppliers');
+                this.suppliers = data.data || data.suppliers || [];
             } catch (error) {
-                console.error('Failed to fetch categories', error);
+                console.error('Failed to fetch suppliers', error);
             }
         },
         async generateReport() {
             this.loading = true;
             try {
-                const { data } = await axios.get('/api/v1/reports/profit', { params: this.filters });
-                this.reportData = data.profit || [];
-                this.chartData = data.chart || [];
+                const { data } = await axios.get('/api/v1/reports/purchases', { params: this.filters });
+                this.reportData = data.purchases || [];
                 this.summary = data.summary || null;
             } catch (error) {
                 console.error('Failed to generate report', error);
-                this.$toast?.error('Failed to generate profit report');
+                this.$toast?.error('Failed to generate purchase report');
             } finally {
                 this.loading = false;
             }
         },
         async exportExcel() {
             try {
-                const response = await axios.get('/api/v1/reports/profit/export/excel', {
+                const response = await axios.get('/api/v1/reports/purchases/export/excel', {
                     params: this.filters,
                     responseType: 'blob',
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', `profit_report_${Date.now()}.xlsx`);
+                link.setAttribute('download', `purchase_report_${Date.now()}.xlsx`);
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
@@ -195,14 +182,14 @@ export default {
         },
         async exportPDF() {
             try {
-                const response = await axios.get('/api/v1/reports/profit/export/pdf', {
+                const response = await axios.get('/api/v1/reports/purchases/export/pdf', {
                     params: this.filters,
                     responseType: 'blob',
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', `profit_report_${Date.now()}.pdf`);
+                link.setAttribute('download', `purchase_report_${Date.now()}.pdf`);
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
@@ -210,6 +197,20 @@ export default {
                 console.error('Failed to export PDF', error);
                 this.$toast?.error('Failed to export report');
             }
+        },
+        formatDate(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString();
+        },
+        getStatusColor(status) {
+            const colors = {
+                draft: 'grey',
+                pending: 'warning',
+                partial: 'info',
+                paid: 'success',
+                cancelled: 'error',
+            };
+            return colors[status] || 'grey';
         },
         // Date change handlers - explicitly set the filter value and fetch
         onDateFromChange(value) {
@@ -225,4 +226,3 @@ export default {
     },
 };
 </script>
-
