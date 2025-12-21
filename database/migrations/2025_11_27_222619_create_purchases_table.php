@@ -28,7 +28,7 @@ return new class extends Migration
             $table->decimal('balance_amount', 15, 2)->default(0);
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('updated_by')->nullable()->after('created_by')->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });
