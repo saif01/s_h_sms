@@ -27,6 +27,7 @@ class Purchase extends Model
         'balance_amount',
         'notes',
         'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -52,6 +53,11 @@ class Purchase extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function items(): HasMany

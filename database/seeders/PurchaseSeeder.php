@@ -125,6 +125,7 @@ class PurchaseSeeder extends Seeder
                 'balance_amount' => round($balanceAmount, 2),
                 'notes' => rand(0, 10) > 7 ? 'Additional notes for purchase order ' . $invoiceNumber : null,
                 'created_by' => $adminUser->id,
+                'updated_by' => null, // Newly created records haven't been updated yet
             ]);
 
             // Create purchase items and update stock

@@ -15,7 +15,7 @@ class PurchaseController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Purchase::with(['supplier', 'warehouse', 'createdBy', 'items.product']);
+        $query = Purchase::with(['supplier', 'warehouse', 'createdBy', 'updatedBy', 'items.product']);
 
         // Filter by supplier
         if ($request->has('supplier_id')) {
@@ -225,14 +225,14 @@ class PurchaseController extends Controller
             return $purchase;
         });
 
-        $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+        $purchase->load(['supplier', 'warehouse', 'createdBy', 'updatedBy', 'items.product']);
         
         return response()->json($purchase, 201);
     }
 
     public function show(Purchase $purchase)
     {
-        $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+        $purchase->load(['supplier', 'warehouse', 'createdBy', 'updatedBy', 'items.product']);
         return response()->json($purchase);
     }
 
@@ -423,8 +423,9 @@ class PurchaseController extends Controller
             }
 
             $purchase->balance_amount = $purchase->total_amount - $purchase->paid_amount;
+            $purchase->updated_by = auth()->id();
             $purchase->save();
-            $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+            $purchase->load(['supplier', 'warehouse', 'createdBy', 'updatedBy', 'items.product']);
             
             return response()->json($purchase);
         });
@@ -565,7 +566,7 @@ class PurchaseController extends Controller
 
             // Refresh purchase to ensure all data is current
             $purchase->refresh();
-            $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+            $purchase->load(['supplier', 'warehouse', 'createdBy', 'updatedBy', 'items.product']);
 
             return response()->json([
                 'message' => 'Purchase received and stock updated successfully',

@@ -133,6 +133,27 @@
                             </v-col>
                         </v-row>
                     </div>
+
+                    <!-- Audit Information -->
+                    <v-divider class="my-4"></v-divider>
+                    <v-row class="mt-2">
+                        <v-col cols="12" md="6" v-if="purchase.created_by">
+                            <div class="text-caption text-grey mb-1">Created By</div>
+                            <div class="text-body-2">{{ purchase.created_by?.name || 'N/A' }}</div>
+                        </v-col>
+                        <v-col cols="12" md="6" v-if="purchase.created_at">
+                            <div class="text-caption text-grey mb-1">Created At</div>
+                            <div class="text-body-2">{{ formatDateTime(purchase.created_at) }}</div>
+                        </v-col>
+                        <v-col cols="12" md="6" v-if="purchase.updated_by">
+                            <div class="text-caption text-grey mb-1">Updated By</div>
+                            <div class="text-body-2">{{ purchase.updated_by?.name || 'N/A' }}</div>
+                        </v-col>
+                        <v-col cols="12" md="6" v-if="purchase.updated_at">
+                            <div class="text-caption text-grey mb-1">Updated At</div>
+                            <div class="text-body-2">{{ formatDateTime(purchase.updated_at) }}</div>
+                        </v-col>
+                    </v-row>
                 </div>
             </v-card-text>
             <v-card-actions>
@@ -171,6 +192,16 @@ export default {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
+            });
+        },
+        formatDateTime(dateTime) {
+            if (!dateTime) return 'N/A';
+            return new Date(dateTime).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         },
         getStatusColor(status) {
