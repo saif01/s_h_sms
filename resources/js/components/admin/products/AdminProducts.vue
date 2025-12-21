@@ -204,7 +204,8 @@
                             </span>
                             <span v-else>
                                 Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString() }}</strong> of
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString()
+                                }}</strong> of
                                 <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
@@ -227,11 +228,11 @@
 
 <script>
 import commonMixin from '../../../mixins/commonMixin';
+import PaginationControls from '../../common/PaginationControls.vue';
+import { paginationMixin } from '../../../utils/pagination.js';
 import ProductDialog from './dialogs/product/ProductDialog.vue';
 import ProductViewDialog from './dialogs/product/ProductViewDialog.vue';
 import StockAdjustmentDialog from './dialogs/product/StockAdjustmentDialog.vue';
-import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
     name: 'AdminProducts',
@@ -241,7 +242,7 @@ export default {
         StockAdjustmentDialog,
         PaginationControls
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             products: [],
@@ -261,11 +262,6 @@ export default {
             // Sorting state - default to order ASC
             sortBy: 'order',
             sortDirection: 'asc',
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -316,10 +312,6 @@ export default {
                 this.loading = false;
             }
         },
-        onSort(field) {
-            this.handleSort(field);
-            this.loadProducts();
-        },
         openDialog(product) {
             this.editingProduct = product;
             this.dialog = true;
@@ -369,39 +361,12 @@ export default {
                 this.handleApiError(error, 'Error deleting product');
             }
         },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadProducts();
-        },
         getStockStatusColor(product) {
             const stockQty = product.stock_quantity || 0;
             const minStock = product.minimum_stock_level || 0;
             if (stockQty <= 0) return 'error';
             if (minStock > 0 && stockQty <= minStock) return 'warning';
             return 'success';
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadProducts();
         },
     },
 };
@@ -418,7 +383,6 @@ export default {
 .page-title {
     margin: 0;
 }
-
 </style>
 
 <style>
