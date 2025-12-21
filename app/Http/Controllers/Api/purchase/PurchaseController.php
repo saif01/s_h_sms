@@ -145,57 +145,61 @@ class PurchaseController extends Controller
                     'notes' => $item['notes'] ?? null,
                 ]);
 
-                $stock = Stock::where('product_id', $purchaseItem->product_id)
-                    ->where('warehouse_id', $purchase->warehouse_id)
-                    ->lockForUpdate()
-                    ->first();
+                // Only update stock if purchase is not in draft status
+                // Draft purchases need to be "received" to update stock
+                if ($status !== 'draft') {
+                    $stock = Stock::where('product_id', $purchaseItem->product_id)
+                        ->where('warehouse_id', $purchase->warehouse_id)
+                        ->lockForUpdate()
+                        ->first();
 
-                if ($stock) {
-                    $oldQty = $stock->quantity;
-                    $newQty = $oldQty + $purchaseItem->quantity;
-                    $oldValue = $stock->total_value;
-                    $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
-                    $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
+                    if ($stock) {
+                        $oldQty = $stock->quantity;
+                        $newQty = $oldQty + $purchaseItem->quantity;
+                        $oldValue = $stock->total_value;
+                        $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
+                        $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
 
-                    $stock->update([
-                        'quantity' => $newQty,
-                        'average_cost' => $avgCost,
-                        'total_value' => $newValue,
-                    ]);
-                    $balanceAfter = $newQty;
-                    $valueBefore = $oldValue;
-                    $valueAfter = $newValue;
-                } else {
-                    $stock = Stock::create([
+                        $stock->update([
+                            'quantity' => $newQty,
+                            'average_cost' => $avgCost,
+                            'total_value' => $newValue,
+                        ]);
+                        $balanceAfter = $newQty;
+                        $valueBefore = $oldValue;
+                        $valueAfter = $newValue;
+                    } else {
+                        $stock = Stock::create([
+                            'product_id' => $purchaseItem->product_id,
+                            'warehouse_id' => $purchase->warehouse_id,
+                            'quantity' => $purchaseItem->quantity,
+                            'average_cost' => $purchaseItem->unit_price,
+                            'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                        ]);
+                        $balanceAfter = $purchaseItem->quantity;
+                        $valueBefore = 0;
+                        $valueAfter = $stock->total_value;
+                        $avgCost = $purchaseItem->unit_price;
+                    }
+
+                    StockLedger::create([
                         'product_id' => $purchaseItem->product_id,
                         'warehouse_id' => $purchase->warehouse_id,
+                        'type' => 'in',
+                        'reference_type' => 'purchase',
+                        'reference_id' => $purchase->id,
+                        'reference_number' => $invoiceNumber,
                         'quantity' => $purchaseItem->quantity,
-                        'average_cost' => $purchaseItem->unit_price,
-                        'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                        'unit_cost' => $purchaseItem->unit_price,
+                        'weighted_avg_cost' => $avgCost,
+                        'total_cost' => $purchaseItem->total,
+                        'balance_after' => $balanceAfter,
+                        'value_before' => $valueBefore,
+                        'value_after' => $valueAfter,
+                        'created_by' => auth()->id(),
+                        'transaction_date' => $validated['invoice_date'],
                     ]);
-                    $balanceAfter = $purchaseItem->quantity;
-                    $valueBefore = 0;
-                    $valueAfter = $stock->total_value;
-                    $avgCost = $purchaseItem->unit_price;
                 }
-
-                StockLedger::create([
-                    'product_id' => $purchaseItem->product_id,
-                    'warehouse_id' => $purchase->warehouse_id,
-                    'type' => 'in',
-                    'reference_type' => 'purchase',
-                    'reference_id' => $purchase->id,
-                    'reference_number' => $invoiceNumber,
-                    'quantity' => $purchaseItem->quantity,
-                    'unit_cost' => $purchaseItem->unit_price,
-                    'weighted_avg_cost' => $avgCost,
-                    'total_cost' => $purchaseItem->total,
-                    'balance_after' => $balanceAfter,
-                    'value_before' => $valueBefore,
-                    'value_after' => $valueAfter,
-                    'created_by' => auth()->id(),
-                    'transaction_date' => $validated['invoice_date'],
-                ]);
             }
 
             if ($paidAmount > 0) {
@@ -259,32 +263,39 @@ class PurchaseController extends Controller
             $oldWarehouseId = $purchase->warehouse_id;
             $newWarehouseId = $validated['warehouse_id'] ?? $purchase->warehouse_id;
 
-            // Reverse stock from old items
-            foreach ($oldItems as $oldItem) {
-                $oldStock = Stock::where('product_id', $oldItem->product_id)
-                    ->where('warehouse_id', $oldWarehouseId)
-                    ->lockForUpdate()
-                    ->first();
+            // Check if stock has been received (stock ledger entries exist)
+            $hasStockLedgerEntries = StockLedger::where('reference_type', 'purchase')
+                ->where('reference_id', $purchase->id)
+                ->exists();
 
-                if ($oldStock) {
-                    $oldQty = $oldStock->quantity;
-                    $newQty = max(0, $oldQty - $oldItem->quantity);
-                    $oldValue = $oldStock->total_value;
-                    $newValue = max(0, $oldValue - ($oldItem->quantity * $oldItem->unit_price));
-                    $avgCost = $newQty > 0 ? $newValue / $newQty : ($oldStock->average_cost ?? 0);
+            // Only reverse stock if it was previously received
+            if ($hasStockLedgerEntries) {
+                foreach ($oldItems as $oldItem) {
+                    $oldStock = Stock::where('product_id', $oldItem->product_id)
+                        ->where('warehouse_id', $oldWarehouseId)
+                        ->lockForUpdate()
+                        ->first();
 
-                    $oldStock->update([
-                        'quantity' => $newQty,
-                        'average_cost' => $avgCost,
-                        'total_value' => $newValue,
-                    ]);
+                    if ($oldStock) {
+                        $oldQty = $oldStock->quantity;
+                        $newQty = max(0, $oldQty - $oldItem->quantity);
+                        $oldValue = $oldStock->total_value;
+                        $newValue = max(0, $oldValue - ($oldItem->quantity * $oldItem->unit_price));
+                        $avgCost = $newQty > 0 ? $newValue / $newQty : ($oldStock->average_cost ?? 0);
+
+                        $oldStock->update([
+                            'quantity' => $newQty,
+                            'average_cost' => $avgCost,
+                            'total_value' => $newValue,
+                        ]);
+                    }
+
+                    // Delete old stock ledger entries for this purchase item
+                    StockLedger::where('reference_type', 'purchase')
+                        ->where('reference_id', $purchase->id)
+                        ->where('product_id', $oldItem->product_id)
+                        ->delete();
                 }
-
-                // Delete old stock ledger entries for this purchase item
-                StockLedger::where('reference_type', 'purchase')
-                    ->where('reference_id', $purchase->id)
-                    ->where('product_id', $oldItem->product_id)
-                    ->delete();
             }
 
             // Delete old items
@@ -325,59 +336,61 @@ class PurchaseController extends Controller
                         'notes' => $item['notes'] ?? null,
                     ]);
 
-                    // Update stock for new items
-                    $stock = Stock::where('product_id', $purchaseItem->product_id)
-                        ->where('warehouse_id', $newWarehouseId)
-                        ->lockForUpdate()
-                        ->first();
+                    // Only update stock if it was previously received (draft purchases shouldn't update stock until received)
+                    if ($hasStockLedgerEntries) {
+                        $stock = Stock::where('product_id', $purchaseItem->product_id)
+                            ->where('warehouse_id', $newWarehouseId)
+                            ->lockForUpdate()
+                            ->first();
 
-                    if ($stock) {
-                        $oldQty = $stock->quantity;
-                        $newQty = $oldQty + $purchaseItem->quantity;
-                        $oldValue = $stock->total_value;
-                        $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
-                        $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
+                        if ($stock) {
+                            $oldQty = $stock->quantity;
+                            $newQty = $oldQty + $purchaseItem->quantity;
+                            $oldValue = $stock->total_value;
+                            $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
+                            $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
 
-                        $stock->update([
-                            'quantity' => $newQty,
-                            'average_cost' => $avgCost,
-                            'total_value' => $newValue,
-                        ]);
-                        $balanceAfter = $newQty;
-                        $valueBefore = $oldValue;
-                        $valueAfter = $newValue;
-                    } else {
-                        $stock = Stock::create([
+                            $stock->update([
+                                'quantity' => $newQty,
+                                'average_cost' => $avgCost,
+                                'total_value' => $newValue,
+                            ]);
+                            $balanceAfter = $newQty;
+                            $valueBefore = $oldValue;
+                            $valueAfter = $newValue;
+                        } else {
+                            $stock = Stock::create([
+                                'product_id' => $purchaseItem->product_id,
+                                'warehouse_id' => $newWarehouseId,
+                                'quantity' => $purchaseItem->quantity,
+                                'average_cost' => $purchaseItem->unit_price,
+                                'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                            ]);
+                            $balanceAfter = $purchaseItem->quantity;
+                            $valueBefore = 0;
+                            $valueAfter = $stock->total_value;
+                            $avgCost = $purchaseItem->unit_price;
+                        }
+
+                        // Create stock ledger entry
+                        StockLedger::create([
                             'product_id' => $purchaseItem->product_id,
                             'warehouse_id' => $newWarehouseId,
+                            'type' => 'in',
+                            'reference_type' => 'purchase',
+                            'reference_id' => $purchase->id,
+                            'reference_number' => $purchase->invoice_number,
                             'quantity' => $purchaseItem->quantity,
-                            'average_cost' => $purchaseItem->unit_price,
-                            'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                            'unit_cost' => $purchaseItem->unit_price,
+                            'weighted_avg_cost' => $avgCost,
+                            'total_cost' => $purchaseItem->total,
+                            'balance_after' => $balanceAfter,
+                            'value_before' => $valueBefore,
+                            'value_after' => $valueAfter,
+                            'created_by' => auth()->id(),
+                            'transaction_date' => $validated['invoice_date'] ?? $purchase->invoice_date,
                         ]);
-                        $balanceAfter = $purchaseItem->quantity;
-                        $valueBefore = 0;
-                        $valueAfter = $stock->total_value;
-                        $avgCost = $purchaseItem->unit_price;
                     }
-
-                    // Create stock ledger entry
-                    StockLedger::create([
-                        'product_id' => $purchaseItem->product_id,
-                        'warehouse_id' => $newWarehouseId,
-                        'type' => 'in',
-                        'reference_type' => 'purchase',
-                        'reference_id' => $purchase->id,
-                        'reference_number' => $purchase->invoice_number,
-                        'quantity' => $purchaseItem->quantity,
-                        'unit_cost' => $purchaseItem->unit_price,
-                        'weighted_avg_cost' => $avgCost,
-                        'total_cost' => $purchaseItem->total,
-                        'balance_after' => $balanceAfter,
-                        'value_before' => $valueBefore,
-                        'value_after' => $valueAfter,
-                        'created_by' => auth()->id(),
-                        'transaction_date' => $validated['invoice_date'] ?? $purchase->invoice_date,
-                    ]);
                 }
 
                 $purchase->subtotal = $subtotal;
@@ -416,7 +429,143 @@ class PurchaseController extends Controller
 
     public function receive(Request $request, Purchase $purchase)
     {
-        return response()->json(['message' => 'Purchases are received on creation in this system'], 200);
+        // Check if purchase is in draft status
+        if ($purchase->status !== 'draft') {
+            return response()->json([
+                'message' => 'Only draft purchases can be received'
+            ], 422);
+        }
+
+        // Refresh purchase to get latest data and validate items
+        $purchase->refresh();
+        $purchase->load(['items.product', 'warehouse']);
+
+        // Validate that purchase has items
+        if ($purchase->items->isEmpty()) {
+            return response()->json([
+                'message' => 'Cannot receive purchase: No items found'
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($purchase) {
+            // Reload items within transaction to ensure fresh data
+            $purchase->load(['items.product', 'warehouse']);
+
+            // Clean up any existing stock ledger entries and reverse stock if they exist
+            // This handles edge cases with old data from before the code change
+            $existingLedgerEntries = StockLedger::where('reference_type', 'purchase')
+                ->where('reference_id', $purchase->id)
+                ->get();
+
+            if ($existingLedgerEntries->count() > 0) {
+                // Reverse stock for existing entries
+                foreach ($existingLedgerEntries as $ledgerEntry) {
+                    $stock = Stock::where('product_id', $ledgerEntry->product_id)
+                        ->where('warehouse_id', $ledgerEntry->warehouse_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($stock) {
+                        $oldQty = $stock->quantity;
+                        $newQty = max(0, $oldQty - $ledgerEntry->quantity);
+                        $oldValue = $stock->total_value;
+                        $newValue = max(0, $oldValue - ($ledgerEntry->quantity * $ledgerEntry->unit_cost));
+                        $avgCost = $newQty > 0 ? ($newValue / $newQty) : ($stock->average_cost ?? 0);
+
+                        $stock->update([
+                            'quantity' => $newQty,
+                            'average_cost' => $avgCost,
+                            'total_value' => $newValue,
+                        ]);
+                    }
+                }
+
+                // Delete existing ledger entries
+                StockLedger::where('reference_type', 'purchase')
+                    ->where('reference_id', $purchase->id)
+                    ->delete();
+            }
+
+            // Validate warehouse is set
+            if (!$purchase->warehouse_id) {
+                throw new \Exception('Purchase warehouse is not set');
+            }
+
+            // Update stock for each item
+            foreach ($purchase->items as $purchaseItem) {
+                // Validate purchase item has required data
+                if (!$purchaseItem->product_id || !$purchaseItem->quantity || $purchaseItem->quantity <= 0) {
+                    continue; // Skip invalid items
+                }
+
+                $stock = Stock::where('product_id', $purchaseItem->product_id)
+                    ->where('warehouse_id', $purchase->warehouse_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($stock) {
+                    $oldQty = $stock->quantity;
+                    $newQty = $oldQty + $purchaseItem->quantity;
+                    $oldValue = $stock->total_value;
+                    $newValue = $oldValue + ($purchaseItem->quantity * $purchaseItem->unit_price);
+                    $avgCost = $newQty > 0 ? $newValue / $newQty : $purchaseItem->unit_price;
+
+                    $stock->update([
+                        'quantity' => $newQty,
+                        'average_cost' => $avgCost,
+                        'total_value' => $newValue,
+                    ]);
+                    $balanceAfter = $newQty;
+                    $valueBefore = $oldValue;
+                    $valueAfter = $newValue;
+                } else {
+                    $stock = Stock::create([
+                        'product_id' => $purchaseItem->product_id,
+                        'warehouse_id' => $purchase->warehouse_id,
+                        'quantity' => $purchaseItem->quantity,
+                        'average_cost' => $purchaseItem->unit_price,
+                        'total_value' => $purchaseItem->quantity * $purchaseItem->unit_price,
+                    ]);
+                    $balanceAfter = $purchaseItem->quantity;
+                    $valueBefore = 0;
+                    $valueAfter = $stock->total_value;
+                    $avgCost = $purchaseItem->unit_price;
+                }
+
+                // Create stock ledger entry
+                StockLedger::create([
+                    'product_id' => $purchaseItem->product_id,
+                    'warehouse_id' => $purchase->warehouse_id,
+                    'type' => 'in',
+                    'reference_type' => 'purchase',
+                    'reference_id' => $purchase->id,
+                    'reference_number' => $purchase->invoice_number,
+                    'quantity' => $purchaseItem->quantity,
+                    'unit_cost' => $purchaseItem->unit_price,
+                    'weighted_avg_cost' => $avgCost,
+                    'total_cost' => $purchaseItem->total,
+                    'balance_after' => $balanceAfter,
+                    'value_before' => $valueBefore,
+                    'value_after' => $valueAfter,
+                    'created_by' => auth()->id(),
+                    'transaction_date' => $purchase->invoice_date,
+                ]);
+            }
+
+            // Update purchase status based on payment
+            $newStatus = $purchase->balance_amount <= 0 ? 'paid' : ($purchase->paid_amount > 0 ? 'partial' : 'pending');
+            $purchase->status = $newStatus;
+            $purchase->save();
+
+            // Refresh purchase to ensure all data is current
+            $purchase->refresh();
+            $purchase->load(['supplier', 'warehouse', 'createdBy', 'items.product']);
+
+            return response()->json([
+                'message' => 'Purchase received and stock updated successfully',
+                'purchase' => $purchase
+            ], 200);
+        });
     }
 
     public function destroy(Purchase $purchase)

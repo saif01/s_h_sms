@@ -106,10 +106,11 @@ class PaymentController extends Controller
                 $purchase = Purchase::lockForUpdate()->findOrFail($validated['reference_id']);
                 $paid = min($purchase->paid_amount + $validated['amount'], $purchase->total_amount);
                 $balance = max($purchase->total_amount - $paid, 0);
+                $newStatus = $balance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'pending');
                 $purchase->update([
                     'paid_amount' => $paid,
                     'balance_amount' => $balance,
-                    'status' => $balance <= 0 ? 'paid' : 'partial',
+                    'status' => $newStatus,
                 ]);
                 $payment->update([
                     'reference_number' => $referenceNumber ?? $purchase->invoice_number,

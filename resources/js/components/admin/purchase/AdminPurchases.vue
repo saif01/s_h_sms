@@ -139,6 +139,9 @@
                                     <v-btn v-if="purchase.status === 'draft'" size="small" icon="mdi-package-variant"
                                         @click="receivePurchase(purchase)" variant="text" color="success"
                                         title="Receive Stock"></v-btn>
+                                    <v-btn v-if="purchase.status !== 'draft' && purchase.balance_amount > 0"
+                                        size="small" icon="mdi-cash" @click="openPaymentDialog(purchase)" variant="text"
+                                        color="primary" title="Add Payment"></v-btn>
                                     <v-btn v-if="purchase.status === 'draft'" size="small" icon="mdi-delete"
                                         @click="deletePurchase(purchase)" variant="text" color="error"
                                         title="Delete"></v-btn>
@@ -184,6 +187,10 @@
 
         <!-- View Purchase Dialog -->
         <ViewPurchaseDialog v-model="viewDialog" :purchase="viewingPurchase" />
+
+        <!-- Payment Dialog -->
+        <PaymentDialog v-model="paymentDialog" :purchase="selectedPurchase" :saving="savingPayment"
+            @save="handleSavePayment" @cancel="closePaymentDialog" />
     </div>
 </template>
 
@@ -191,6 +198,7 @@
 import commonMixin from '../../../mixins/commonMixin';
 import PurchaseDialog from './dialogs/PurchaseDialog.vue';
 import ViewPurchaseDialog from './dialogs/ViewPurchaseDialog.vue';
+import PaymentDialog from './dialogs/PaymentDialog.vue';
 import PaginationControls from '../../common/PaginationControls.vue';
 import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
@@ -198,6 +206,7 @@ export default {
     components: {
         PurchaseDialog,
         ViewPurchaseDialog,
+        PaymentDialog,
         PaginationControls
     },
     mixins: [commonMixin],
@@ -225,6 +234,9 @@ export default {
             saving: false,
             viewDialog: false,
             viewingPurchase: null,
+            paymentDialog: false,
+            selectedPurchase: null,
+            savingPayment: false,
             // Pagination state
             currentPage: 1,
             perPage: 10,
@@ -373,7 +385,20 @@ export default {
             }
         },
         async receivePurchase(purchase) {
-            if (!confirm(`Receive stock for purchase ${purchase.invoice_number}? This will update stock levels.`)) {
+            // Show SweetAlert confirmation
+            const result = await window.Swal.fire({
+                title: 'Receive Stock?',
+                text: `Receive stock for purchase invoice "${purchase.invoice_number}"? This will update stock levels.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, receive stock!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+
+            if (!result.isConfirmed) {
                 return;
             }
 
@@ -465,7 +490,42 @@ export default {
             this.handleSort(field);
             this.currentPage = 1; // Reset to first page when sorting changes
             this.loadPurchases();
-        }
+        },
+        openPaymentDialog(purchase) {
+            this.selectedPurchase = purchase;
+            this.paymentDialog = true;
+        },
+        closePaymentDialog() {
+            this.paymentDialog = false;
+            this.selectedPurchase = null;
+        },
+        async handleSavePayment(paymentData) {
+            this.savingPayment = true;
+            try {
+                const token = localStorage.getItem('admin_token');
+                await this.$axios.post('/api/v1/payments', {
+                    party_type: 'supplier',
+                    party_id: this.selectedPurchase.supplier_id,
+                    reference_type: 'purchase',
+                    reference_id: this.selectedPurchase.id,
+                    reference_number: this.selectedPurchase.invoice_number,
+                    payment_date: paymentData.payment_date,
+                    amount: paymentData.amount,
+                    payment_method: paymentData.payment_method,
+                    notes: paymentData.notes,
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                this.showSuccess('Payment added successfully');
+                this.closePaymentDialog();
+                await this.loadPurchases();
+            } catch (error) {
+                this.handleApiError(error, 'Error adding payment');
+            } finally {
+                this.savingPayment = false;
+            }
+        },
     }
 };
 </script>

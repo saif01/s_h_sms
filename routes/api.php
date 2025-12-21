@@ -123,6 +123,7 @@ Route::prefix('v1')->group(function () {
 
         // Purchases / Suppliers
         Route::apiResource('purchases', PurchaseController::class);
+        Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
         Route::apiResource('suppliers', SupplierController::class);
 
         // Sales / Customers / Payments
