@@ -203,7 +203,8 @@
                                     </v-chip>
                                 </td>
                                 <td class="text-center">{{ item.minimum_stock_level || 0 }}</td>
-                                <td class="text-end">{{ formatCurrency((item.quantity || 0) * (item.purchase_price || 0)) }}</td>
+                                <td class="text-end">{{ formatCurrency((item.quantity || 0) * (item.purchase_price ||
+                                    0)) }}</td>
                                 <td>
                                     <v-chip :color="getStockColor(item)" size="small" variant="flat">
                                         {{ getStockStatus(item) }}

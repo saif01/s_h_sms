@@ -159,20 +159,64 @@ class ReportController extends Controller
             $query->where('purchases.status', $request->status);
         }
 
-        $purchases = $query->orderBy('purchases.invoice_date', 'desc')->get();
+        // Sorting
+        $sortBy = $request->get('sort_by', 'invoice_date');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        
+        $allowedSortFields = [
+            'id', 'invoice_number', 'invoice_date', 'supplier_name', 
+            'total_amount', 'paid_amount', 'balance_amount', 'status', 'created_at'
+        ];
+        
+        // Map frontend sort fields to database fields
+        $sortFieldMap = [
+            'invoice_number' => 'purchases.invoice_number',
+            'invoice_date' => 'purchases.invoice_date',
+            'supplier_name' => 'suppliers.name',
+            'total_amount' => 'purchases.total_amount',
+            'paid_amount' => 'purchases.paid_amount',
+            'balance_amount' => 'purchases.balance_amount',
+            'status' => 'purchases.status',
+        ];
+        
+        $dbSortField = $sortFieldMap[$sortBy] ?? 'purchases.invoice_date';
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        $query->orderBy($dbSortField, $sortDirection);
 
-        // Calculate summary
+        // Get all purchases for summary calculation (before pagination)
+        $allPurchases = clone $query;
+        $allPurchasesForSummary = $allPurchases->get();
+
+        // For financial calculations: exclude cancelled purchases unless explicitly filtered by cancelled status
+        $purchasesForFinancials = $allPurchasesForSummary;
+        if (!$request->status || $request->status !== 'cancelled') {
+            // If no status filter or not filtering by cancelled, exclude cancelled from financials
+            $purchasesForFinancials = $allPurchasesForSummary->where('status', '!=', 'cancelled');
+        }
+        
+        // Calculate summary from all filtered purchases
+        // Financial totals exclude cancelled purchases (unless explicitly viewing cancelled), count includes all
         $summary = [
-            'total_purchases' => $purchases->sum('total_amount'),
-            'total_paid' => $purchases->sum('paid_amount'),
-            'total_due' => $purchases->sum('balance_amount'),
-            'total_count' => $purchases->count(),
+            'total_purchases' => (float) ($purchasesForFinancials->sum('total_amount') ?? 0),
+            'total_paid' => (float) ($purchasesForFinancials->sum('paid_amount') ?? 0),
+            'total_due' => (float) ($purchasesForFinancials->sum('balance_amount') ?? 0),
+            'total_count' => (int) $allPurchasesForSummary->count(), // Include all statuses in count
         ];
 
-        return response()->json([
-            'purchases' => $purchases,
-            'summary' => $summary,
-        ]);
+        // Paginate the purchases
+        $perPage = $request->get('per_page', 10);
+        $purchases = $query->paginate($perPage);
+
+        // Return paginated response with additional data
+        $response = $purchases->toArray();
+        $response['summary'] = $summary;
+        $response['purchases'] = $response['data']; // Keep 'purchases' key for backward compatibility
+        
+        return response()->json($response);
     }
 
     /**
@@ -204,32 +248,73 @@ class ReportController extends Controller
             $query->whereColumn('stocks.quantity', '<=', 'products.minimum_stock_level');
         }
 
-        $stock = $query->get();
+        // Sorting
+        $sortBy = $request->get('sort_by', 'product_name');
+        $sortDirection = $request->get('sort_direction', 'asc');
+        
+        $allowedSortFields = [
+            'product_name', 'sku', 'category_name', 'warehouse_name',
+            'quantity', 'minimum_stock_level', 'status'
+        ];
+        
+        // Map frontend sort fields to database fields
+        $sortFieldMap = [
+            'product_name' => 'products.name',
+            'sku' => 'products.sku',
+            'category_name' => 'categories.name',
+            'warehouse_name' => 'warehouses.name',
+            'quantity' => 'stocks.quantity',
+            'minimum_stock_level' => 'products.minimum_stock_level',
+            'stock_value' => DB::raw('(stocks.quantity * products.purchase_price)'),
+            'status' => DB::raw('CASE 
+                WHEN stocks.quantity = 0 THEN 1
+                WHEN stocks.quantity <= products.minimum_stock_level THEN 2
+                ELSE 3
+            END'),
+        ];
+        
+        $dbSortField = $sortFieldMap[$sortBy] ?? 'products.name';
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+        
+        $query->orderBy($dbSortField, $sortDirection);
 
-        // Calculate summary
-        $totalStockValue = $stock->sum(function ($item) {
+        // Get all stock for summary calculation (before pagination)
+        $allStock = clone $query;
+        $allStockForSummary = $allStock->get();
+
+        // Calculate summary from all filtered stock
+        $totalStockValue = $allStockForSummary->sum(function ($item) {
             return $item->quantity * $item->purchase_price;
         });
 
-        $lowStockCount = $stock->filter(function ($item) {
-            return $item->quantity <= $item->minimum_stock_level;
+        $lowStockCount = $allStockForSummary->filter(function ($item) {
+            return $item->quantity > 0 && $item->quantity <= $item->minimum_stock_level;
         })->count();
 
-        $outOfStockCount = $stock->filter(function ($item) {
+        $outOfStockCount = $allStockForSummary->filter(function ($item) {
             return $item->quantity == 0;
         })->count();
 
         $summary = [
-            'total_products' => $stock->count(),
-            'total_stock_value' => $totalStockValue,
-            'low_stock_count' => $lowStockCount,
-            'out_of_stock_count' => $outOfStockCount,
+            'total_products' => $allStockForSummary->count(),
+            'total_stock_value' => (float) $totalStockValue,
+            'low_stock_count' => (int) $lowStockCount,
+            'out_of_stock_count' => (int) $outOfStockCount,
         ];
 
-        return response()->json([
-            'stock' => $stock,
-            'summary' => $summary,
-        ]);
+        // Paginate the stock
+        $perPage = $request->get('per_page', 10);
+        $stock = $query->paginate($perPage);
+
+        // Return paginated response with additional data
+        $response = $stock->toArray();
+        $response['summary'] = $summary;
+        $response['stock'] = $response['data']; // Keep 'stock' key for backward compatibility
+        
+        return response()->json($response);
     }
 
     /**
@@ -270,21 +355,57 @@ class ReportController extends Controller
                 ->whereDate('due_date', '<', now());
         }
 
-        $due = $query->orderBy('due_date', 'asc')->get();
+        // Sorting
+        $sortBy = $request->get('sort_by', 'due_date');
+        $sortDirection = $request->get('sort_direction', 'asc');
+        
+        $allowedSortFields = [
+            'party_name', 'invoice_number', 'invoice_date', 'due_date',
+            'total_amount', 'paid_amount', 'due_amount'
+        ];
+        
+        // Map frontend sort fields to database fields
+        $sortFieldMap = [
+            'party_name' => $partyType === 'customer' ? 'customers.name' : 'suppliers.name',
+            'invoice_number' => $partyType === 'customer' ? 'sales.invoice_number' : 'purchases.invoice_number',
+            'invoice_date' => $partyType === 'customer' ? 'sales.invoice_date' : 'purchases.invoice_date',
+            'due_date' => $partyType === 'customer' ? 'sales.due_date' : 'purchases.due_date',
+            'total_amount' => $partyType === 'customer' ? 'sales.total_amount' : 'purchases.total_amount',
+            'paid_amount' => $partyType === 'customer' ? 'sales.paid_amount' : 'purchases.paid_amount',
+            'due_amount' => $partyType === 'customer' ? 'sales.balance_amount' : 'purchases.balance_amount',
+        ];
+        
+        $dbSortField = $sortFieldMap[$sortBy] ?? ($partyType === 'customer' ? 'sales.due_date' : 'purchases.due_date');
+        
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+        
+        $query->orderBy($dbSortField, $sortDirection);
 
-        // Calculate summary
+        // Get all due records for summary calculation (before pagination)
+        $allDue = clone $query;
+        $allDueForSummary = $allDue->get();
+
+        // Calculate summary from all filtered due records
         $summary = [
-            'total_due' => $due->sum('due_amount'),
-            'overdue_amount' => $due->filter(function ($item) {
+            'total_due' => (float) ($allDueForSummary->sum('due_amount') ?? 0),
+            'overdue_amount' => (float) ($allDueForSummary->filter(function ($item) {
                 return $item->due_date && $item->due_date < now();
-            })->sum('due_amount'),
-            'total_parties' => $due->unique('party_id')->count(),
+            })->sum('due_amount') ?? 0),
+            'total_parties' => (int) $allDueForSummary->unique('party_id')->count(),
         ];
 
-        return response()->json([
-            'due' => $due,
-            'summary' => $summary,
-        ]);
+        // Paginate the due records
+        $perPage = $request->get('per_page', 10);
+        $due = $query->paginate($perPage);
+
+        // Return paginated response with additional data
+        $response = $due->toArray();
+        $response['summary'] = $summary;
+        $response['due'] = $response['data']; // Keep 'due' key for backward compatibility
+        
+        return response()->json($response);
     }
 
     /**
@@ -333,6 +454,7 @@ class ReportController extends Controller
                 $profit = $revenue - $cost - $discount;
                 
                 $profitData[] = [
+                    'id' => $productId,
                     'name' => $group->first()->product_name,
                     'period' => 'All',
                     'quantity_sold' => $group->sum('quantity'),
@@ -354,6 +476,7 @@ class ReportController extends Controller
                 $profit = $revenue - $cost - $discount;
                 
                 $profitData[] = [
+                    'id' => $category ?? 'uncategorized',
                     'name' => $category ?? 'Uncategorized',
                     'period' => 'All',
                     'quantity_sold' => $group->sum('quantity'),
@@ -387,6 +510,7 @@ class ReportController extends Controller
                 $profit = $revenue - $cost - $discount;
                 
                 $profitData[] = [
+                    'id' => $period,
                     'period' => $period,
                     'name' => '-',
                     'quantity_sold' => $group->sum('quantity'),
@@ -399,23 +523,59 @@ class ReportController extends Controller
             }
         }
 
-        // Calculate summary
-        $totalRevenue = collect($profitData)->sum('revenue');
-        $totalCost = collect($profitData)->sum('cost');
+        // Convert to collection for sorting and pagination
+        $profitCollection = collect($profitData);
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'period');
+        $sortDirection = $request->get('sort_direction', 'asc');
+        
+        $allowedSortFields = [
+            'period', 'name', 'quantity_sold', 'revenue', 'cost', 'discount', 'profit', 'profit_margin'
+        ];
+        
+        if (in_array($sortBy, $allowedSortFields) && in_array($sortDirection, ['asc', 'desc'])) {
+            $profitCollection = $profitCollection->sortBy($sortBy, SORT_REGULAR, $sortDirection === 'desc');
+        }
+
+        // Calculate summary from all grouped data (before pagination)
+        $totalRevenue = $profitCollection->sum('revenue');
+        $totalCost = $profitCollection->sum('cost');
         $grossProfit = $totalRevenue - $totalCost;
         
         $summary = [
-            'total_revenue' => $totalRevenue,
-            'total_cost' => $totalCost,
-            'gross_profit' => $grossProfit,
-            'profit_margin' => $totalRevenue > 0 ? ($grossProfit / $totalRevenue) * 100 : 0,
+            'total_revenue' => (float) $totalRevenue,
+            'total_cost' => (float) $totalCost,
+            'gross_profit' => (float) $grossProfit,
+            'profit_margin' => (float) ($totalRevenue > 0 ? ($grossProfit / $totalRevenue) * 100 : 0),
         ];
 
-        return response()->json([
-            'profit' => $profitData,
-            'chart' => $profitData,
+        // Paginate the profit data
+        $perPage = $request->get('per_page', 10);
+        $currentPage = $request->get('page', 1);
+        
+        // Manual pagination for collection
+        $total = $profitCollection->count();
+        $offset = ($currentPage - 1) * $perPage;
+        $paginatedData = $profitCollection->slice($offset, $perPage)->values();
+        
+        // Build pagination response
+        $lastPage = (int) ceil($total / $perPage);
+        
+        $response = [
+            'data' => $paginatedData,
+            'current_page' => (int) $currentPage,
+            'last_page' => $lastPage,
+            'per_page' => (int) $perPage,
+            'total' => $total,
+            'from' => $total > 0 ? $offset + 1 : null,
+            'to' => $total > 0 ? min($offset + $perPage, $total) : null,
             'summary' => $summary,
-        ]);
+            'profit' => $paginatedData, // Keep 'profit' key for backward compatibility
+            'chart' => $profitCollection->take(30)->values(), // Chart data (first 30 records for visualization)
+        ];
+        
+        return response()->json($response);
     }
 
     /**
