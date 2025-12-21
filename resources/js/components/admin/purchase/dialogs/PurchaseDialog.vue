@@ -1,5 +1,5 @@
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1200px"
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="1500px"
         scrollable persistent>
         <v-card>
             <v-card-title class="pa-3 d-flex justify-space-between align-center">
@@ -69,26 +69,37 @@
                         <!-- Items Tab -->
                         <v-window-item value="items">
                             <div class="pa-3">
-                                <div class="d-flex justify-space-between align-center mb-3">
-                                    <div>
-                                        <span class="text-body-1 font-weight-medium">Invoice Items</span>
-                                        <div class="text-caption text-grey mt-1" v-if="localForm.items.length === 0">
-                                            Click "Add Item" button to add products to this invoice
+                                <div class="items-header mb-4">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div class="d-flex align-center">
+                                            <v-icon icon="mdi-cart-outline" size="24" color="primary"
+                                                class="mr-3"></v-icon>
+                                            <div>
+                                                <h3 class="text-h6 font-weight-medium ma-0">Invoice Items</h3>
+                                                <div class="text-caption text-medium-emphasis mt-1"
+                                                    v-if="localForm.items.length === 0">
+                                                    Click the button below to add products to this invoice
+                                                </div>
+                                                <div class="text-caption text-medium-emphasis mt-1" v-else>
+                                                    {{ localForm.items.length }} {{ localForm.items.length === 1 ?
+                                                        'item' : 'items' }} added
+                                                </div>
+                                            </div>
                                         </div>
+                                        <v-btn color="primary" prepend-icon="mdi-plus" density="default"
+                                            @click="addPurchaseItem" variant="elevated" elevation="2">
+                                            Add Item
+                                        </v-btn>
                                     </div>
-                                    <v-btn size="small" color="primary" prepend-icon="mdi-plus" density="compact"
-                                        @click="addPurchaseItem" variant="flat">
-                                        Add Item
-                                    </v-btn>
                                 </div>
                                 <v-table density="compact" class="items-table">
                                     <thead>
                                         <tr>
                                             <th class="text-caption">Product</th>
-                                            <th class="text-caption text-center" style="width: 80px;">Qty</th>
-                                            <th class="text-caption text-end" style="width: 100px;">Unit Price</th>
-                                            <th class="text-caption text-end" style="width: 90px;">Discount</th>
-                                            <th class="text-caption text-end" style="width: 90px;">Tax</th>
+                                            <th class="text-caption text-center" style="width: 150px;">Qty</th>
+                                            <th class="text-caption text-end" style="width: 150px;">Unit Price</th>
+                                            <th class="text-caption text-end" style="width: 130px;">Discount</th>
+                                            <th class="text-caption text-end" style="width: 120px;">Tax</th>
                                             <th class="text-caption text-end" style="width: 110px;">Total</th>
                                             <th class="text-caption" style="width: 50px;"></th>
                                         </tr>
