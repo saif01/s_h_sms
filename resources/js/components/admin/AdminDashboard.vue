@@ -21,7 +21,7 @@
                             <v-chip v-if="card.trend !== null" :color="card.trend >= 0 ? 'success' : 'error'"
                                 size="small" variant="flat">
                                 <v-icon start size="14">{{ card.trend >= 0 ? 'mdi-arrow-up' : 'mdi-arrow-down'
-                                }}</v-icon>
+                                    }}</v-icon>
                                 {{ Math.abs(card.trend).toFixed(1) }}%
                             </v-chip>
                         </div>
@@ -43,6 +43,155 @@
                             <div class="text-caption text-grey-darken-1">{{ card.title }}</div>
                         </div>
                         <div class="text-h6 font-weight-bold">{{ card.value }}</div>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+
+        <!-- AI Powered Analysis -->
+        <v-row class="mb-4" dense>
+            <v-col cols="12">
+                <v-card elevation="2" class="ai-insights-card">
+                    <v-card-title class="d-flex align-center">
+                        <v-icon icon="mdi-brain" color="primary" class="mr-2" size="28" />
+                        <span class="text-h6">AI-Powered Business Insights</span>
+                        <v-spacer />
+                        <v-chip size="small" color="primary" variant="flat" class="ml-2">
+                            <v-icon start size="16">mdi-sparkles</v-icon>
+                            Smart Analysis
+                        </v-chip>
+                    </v-card-title>
+                    <v-divider />
+                    <v-card-text class="pa-4">
+                        <div v-if="loading" class="text-center py-8">
+                            <v-progress-circular indeterminate color="primary" />
+                            <div class="text-caption text-grey mt-2">Analyzing your business data...</div>
+                        </div>
+                        <div v-else>
+                            <!-- Insights Grid -->
+                            <v-row dense>
+                                <!-- Sales Forecast -->
+                                <v-col cols="12" md="4" v-if="aiInsights.salesForecast">
+                                    <v-card variant="outlined" class="insight-card">
+                                        <v-card-text class="pa-3">
+                                            <div class="d-flex align-center mb-2">
+                                                <v-icon icon="mdi-trending-up" color="info" class="mr-2" />
+                                                <span class="text-subtitle-2 font-weight-bold">Sales Forecast</span>
+                                            </div>
+                                            <div class="text-body-2 text-grey mb-2">{{ aiInsights.salesForecast.message
+                                                }}</div>
+                                            <div class="text-h6 font-weight-bold text-info">
+                                                {{ formatCurrency(aiInsights.salesForecast.predicted) }}
+                                            </div>
+                                            <div class="text-caption text-grey mt-1">
+                                                Expected {{ aiInsights.salesForecast.period }}
+                                            </div>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+
+                                <!-- Anomaly Detection -->
+                                <v-col cols="12" md="4" v-if="aiInsights.anomalies && aiInsights.anomalies.length > 0">
+                                    <v-card :color="aiInsights.anomalies[0].severity === 'high' ? 'error' : 'warning'"
+                                        variant="tonal">
+                                        <v-card-text class="pa-3">
+                                            <div class="d-flex align-center mb-2">
+                                                <v-icon icon="mdi-alert-circle"
+                                                    :color="aiInsights.anomalies[0].severity === 'high' ? 'error' : 'warning'"
+                                                    class="mr-2" />
+                                                <span class="text-subtitle-2 font-weight-bold">Anomaly Detected</span>
+                                            </div>
+                                            <div class="text-body-2 mb-2">{{ aiInsights.anomalies[0].message }}</div>
+                                            <v-chip size="x-small"
+                                                :color="aiInsights.anomalies[0].severity === 'high' ? 'error' : 'warning'"
+                                                variant="flat">
+                                                {{ aiInsights.anomalies[0].severity.toUpperCase() }} PRIORITY
+                                            </v-chip>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+
+                                <!-- Performance Score -->
+                                <v-col cols="12" md="4" v-if="aiInsights.performanceScore">
+                                    <v-card variant="outlined" class="insight-card">
+                                        <v-card-text class="pa-3">
+                                            <div class="d-flex align-center mb-2">
+                                                <v-icon icon="mdi-chart-box" color="success" class="mr-2" />
+                                                <span class="text-subtitle-2 font-weight-bold">Performance Score</span>
+                                            </div>
+                                            <div class="d-flex align-center">
+                                                <v-progress-circular :model-value="aiInsights.performanceScore.score"
+                                                    :color="getPerformanceColor(aiInsights.performanceScore.score)"
+                                                    size="60" width="6" class="mr-3">
+                                                    <span class="text-h6 font-weight-bold">{{
+                                                        aiInsights.performanceScore.score
+                                                        }}</span>
+                                                </v-progress-circular>
+                                                <div>
+                                                    <div class="text-body-2">{{ aiInsights.performanceScore.label }}
+                                                    </div>
+                                                    <div class="text-caption text-grey">{{
+                                                        aiInsights.performanceScore.description }}</div>
+                                                </div>
+                                            </div>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+                            </v-row>
+
+                            <!-- Recommendations -->
+                            <v-row class="mt-2" dense
+                                v-if="aiInsights.recommendations && aiInsights.recommendations.length > 0">
+                                <v-col cols="12">
+                                    <div class="text-subtitle-2 font-weight-bold mb-2">
+                                        <v-icon icon="mdi-lightbulb-on" color="warning" size="20" class="mr-1" />
+                                        Recommendations
+                                    </div>
+                                    <v-list density="compact" variant="outlined" rounded>
+                                        <v-list-item v-for="(rec, index) in aiInsights.recommendations" :key="index"
+                                            class="px-3">
+                                            <template v-slot:prepend>
+                                                <v-avatar :color="getRecommendationColor(rec.priority)" size="32"
+                                                    class="mr-3">
+                                                    <v-icon :icon="getRecommendationIcon(rec.priority)" size="18"
+                                                        color="white" />
+                                                </v-avatar>
+                                            </template>
+                                            <v-list-item-title class="text-body-2">{{ rec.title }}</v-list-item-title>
+                                            <v-list-item-subtitle class="text-caption">{{ rec.description
+                                                }}</v-list-item-subtitle>
+                                            <template v-slot:append>
+                                                <v-chip size="x-small" :color="getRecommendationColor(rec.priority)"
+                                                    variant="flat">
+                                                    {{ rec.priority }}
+                                                </v-chip>
+                                            </template>
+                                        </v-list-item>
+                                    </v-list>
+                                </v-col>
+                            </v-row>
+
+                            <!-- Trend Insights -->
+                            <v-row class="mt-2" dense
+                                v-if="aiInsights.trendInsights && aiInsights.trendInsights.length > 0">
+                                <v-col cols="12">
+                                    <div class="text-subtitle-2 font-weight-bold mb-2">
+                                        <v-icon icon="mdi-chart-timeline-variant" color="info" size="20" class="mr-1" />
+                                        Trend Insights
+                                    </div>
+                                    <v-chip-group>
+                                        <v-chip v-for="(insight, index) in aiInsights.trendInsights" :key="index"
+                                            :color="insight.type === 'positive' ? 'success' : insight.type === 'negative' ? 'error' : 'info'"
+                                            variant="flat" size="small" class="mr-2 mb-2">
+                                            <v-icon start
+                                                :icon="insight.type === 'positive' ? 'mdi-arrow-up' : insight.type === 'negative' ? 'mdi-arrow-down' : 'mdi-information'"
+                                                size="16" />
+                                            {{ insight.message }}
+                                        </v-chip>
+                                    </v-chip-group>
+                                </v-col>
+                            </v-row>
+                        </div>
                     </v-card-text>
                 </v-card>
             </v-col>
@@ -119,7 +268,7 @@
                                     <div class="d-flex justify-space-between align-center mt-1">
                                         <span>{{ product.quantity }} units sold</span>
                                         <span class="font-weight-bold text-primary">{{ formatCurrency(product.sales)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                 </v-list-item-subtitle>
                             </v-list-item>
@@ -150,9 +299,9 @@
                                 <v-list-item-subtitle>
                                     <div class="d-flex justify-space-between align-center mt-1">
                                         <span>{{ customer.orders }} {{ customer.orders === 1 ? 'order' : 'orders'
-                                        }}</span>
+                                            }}</span>
                                         <span class="font-weight-bold text-success">{{ formatCurrency(customer.sales)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                 </v-list-item-subtitle>
                             </v-list-item>
@@ -173,7 +322,7 @@
                         <span>Stock Alerts</span>
                         <v-chip v-if="lowStockItems.length > 0" size="small" color="error" class="ml-2">{{
                             lowStockItems.length
-                        }}</v-chip>
+                            }}</v-chip>
                     </v-card-title>
                     <v-divider />
                     <v-card-text class="pa-0">
@@ -314,6 +463,13 @@ export default {
             topCustomers: [],
             lowStockItems: [],
             recentSales: [],
+            aiInsights: {
+                salesForecast: null,
+                anomalies: [],
+                performanceScore: null,
+                recommendations: [],
+                trendInsights: [],
+            },
         };
     },
     computed: {
@@ -508,12 +664,326 @@ export default {
                 this.topCustomers = data.top_customers || [];
                 this.lowStockItems = data.low_stock_items || [];
                 this.recentSales = data.recent_sales || [];
+
+                // Generate AI insights after data is loaded
+                this.generateAIInsights();
             } catch (error) {
                 console.error('Failed to load dashboard', error);
                 this.handleApiError(error, 'Failed to load dashboard data');
             } finally {
                 this.loading = false;
             }
+        },
+        generateAIInsights() {
+            // Sales Forecast
+            this.aiInsights.salesForecast = this.calculateSalesForecast();
+
+            // Anomaly Detection
+            this.aiInsights.anomalies = this.detectAnomalies();
+
+            // Performance Score
+            this.aiInsights.performanceScore = this.calculatePerformanceScore();
+
+            // Recommendations
+            this.aiInsights.recommendations = this.generateRecommendations();
+
+            // Trend Insights
+            this.aiInsights.trendInsights = this.analyzeTrends();
+        },
+        calculateSalesForecast() {
+            const trendData = this.chartPeriod === '7'
+                ? (this.charts.sales_trend_7 || [])
+                : (this.charts.sales_trend_30 || []);
+
+            if (!trendData || trendData.length < 3) {
+                return null;
+            }
+
+            // Simple linear regression for forecasting
+            const sales = trendData.map(item => item.sales || 0);
+            const avgSales = sales.reduce((a, b) => a + b, 0) / sales.length;
+
+            // Calculate trend (simple average of last 3 days/weeks)
+            const recentSales = sales.slice(-3);
+            const recentAvg = recentSales.reduce((a, b) => a + b, 0) / recentSales.length;
+            const trend = recentAvg > avgSales ? 'increasing' : 'decreasing';
+
+            // Predict next period (simple projection)
+            const growthRate = recentAvg > 0 ? (recentAvg - avgSales) / avgSales : 0;
+            const predicted = this.metrics.month_sales * (1 + growthRate * 0.1); // Conservative projection
+
+            const period = this.chartPeriod === '7' ? 'next week' : 'next month';
+
+            return {
+                predicted: Math.max(0, predicted),
+                period: period,
+                trend: trend,
+                message: trend === 'increasing'
+                    ? 'Sales are trending upward. Expected growth continues.'
+                    : 'Sales are declining. Consider promotional strategies.',
+            };
+        },
+        detectAnomalies() {
+            const anomalies = [];
+
+            // Check for sudden sales drop
+            if (this.metrics.sales_growth < -20) {
+                anomalies.push({
+                    severity: 'high',
+                    message: `Sales dropped ${Math.abs(this.metrics.sales_growth).toFixed(1)}% compared to yesterday. Immediate attention required.`,
+                    type: 'sales_drop',
+                });
+            } else if (this.metrics.sales_growth < -10) {
+                anomalies.push({
+                    severity: 'medium',
+                    message: `Sales decreased ${Math.abs(this.metrics.sales_growth).toFixed(1)}% compared to yesterday. Monitor closely.`,
+                    type: 'sales_drop',
+                });
+            }
+
+            // Check for low stock items
+            if (this.metrics.low_stock_items > 5) {
+                anomalies.push({
+                    severity: 'high',
+                    message: `${this.metrics.low_stock_items} products are running low on stock. Restock needed.`,
+                    type: 'low_stock',
+                });
+            } else if (this.metrics.low_stock_items > 0) {
+                anomalies.push({
+                    severity: 'medium',
+                    message: `${this.metrics.low_stock_items} product(s) need restocking.`,
+                    type: 'low_stock',
+                });
+            }
+
+            // Check for high customer due
+            if (this.metrics.customer_due > this.metrics.month_sales * 0.3) {
+                anomalies.push({
+                    severity: 'medium',
+                    message: `Customer dues (${this.formatCurrency(this.metrics.customer_due)}) are high. Follow up on payments.`,
+                    type: 'high_due',
+                });
+            }
+
+            // Check for negative profit
+            if (this.metrics.profit < 0) {
+                anomalies.push({
+                    severity: 'high',
+                    message: 'Negative profit detected this month. Review pricing and costs.',
+                    type: 'negative_profit',
+                });
+            }
+
+            return anomalies;
+        },
+        calculatePerformanceScore() {
+            let score = 100;
+            const factors = [];
+
+            // Sales growth factor
+            if (this.metrics.sales_growth > 0) {
+                score += Math.min(10, this.metrics.sales_growth / 2);
+                factors.push('positive');
+            } else {
+                score -= Math.min(15, Math.abs(this.metrics.sales_growth));
+                factors.push('negative');
+            }
+
+            // Month growth factor
+            if (this.metrics.month_growth > 0) {
+                score += Math.min(10, this.metrics.month_growth / 2);
+            } else {
+                score -= Math.min(15, Math.abs(this.metrics.month_growth));
+            }
+
+            // Low stock penalty
+            score -= this.metrics.low_stock_items * 2;
+
+            // Profit factor
+            if (this.metrics.profit > 0) {
+                const profitMargin = (this.metrics.profit / this.metrics.month_sales) * 100;
+                if (profitMargin > 20) {
+                    score += 10;
+                } else if (profitMargin > 10) {
+                    score += 5;
+                }
+            } else {
+                score -= 20;
+            }
+
+            // Due management
+            const dueRatio = this.metrics.customer_due / (this.metrics.month_sales || 1);
+            if (dueRatio > 0.3) {
+                score -= 10;
+            } else if (dueRatio < 0.1) {
+                score += 5;
+            }
+
+            score = Math.max(0, Math.min(100, score));
+
+            let label = 'Excellent';
+            let description = 'Your business is performing exceptionally well.';
+
+            if (score < 50) {
+                label = 'Needs Improvement';
+                description = 'Several areas need attention to improve performance.';
+            } else if (score < 70) {
+                label = 'Good';
+                description = 'Business is performing well with room for optimization.';
+            } else if (score < 85) {
+                label = 'Very Good';
+                description = 'Strong performance with minor areas to enhance.';
+            }
+
+            return {
+                score: Math.round(score),
+                label: label,
+                description: description,
+            };
+        },
+        generateRecommendations() {
+            const recommendations = [];
+
+            // Sales recommendations
+            if (this.metrics.sales_growth < -10) {
+                recommendations.push({
+                    title: 'Boost Sales Performance',
+                    description: 'Sales are declining. Consider running promotions, improving marketing, or reviewing pricing strategy.',
+                    priority: 'high',
+                    category: 'sales',
+                });
+            }
+
+            // Stock recommendations
+            if (this.lowStockItems.length > 0) {
+                const topLowStock = this.lowStockItems.slice(0, 3).map(item => item.name).join(', ');
+                recommendations.push({
+                    title: 'Restock Low Inventory Items',
+                    description: `Priority items: ${topLowStock}. Reorder to prevent stockouts.`,
+                    priority: this.metrics.low_stock_items > 5 ? 'high' : 'medium',
+                    category: 'inventory',
+                });
+            }
+
+            // Profit recommendations
+            if (this.metrics.profit < this.metrics.month_sales * 0.1) {
+                recommendations.push({
+                    title: 'Optimize Profit Margins',
+                    description: 'Profit margins are low. Review product pricing, negotiate better supplier rates, or reduce operational costs.',
+                    priority: 'high',
+                    category: 'profit',
+                });
+            }
+
+            // Customer due recommendations
+            if (this.metrics.customer_due > this.metrics.month_sales * 0.2) {
+                recommendations.push({
+                    title: 'Collect Outstanding Payments',
+                    description: `Customer dues of ${this.formatCurrency(this.metrics.customer_due)} need attention. Follow up with customers.`,
+                    priority: 'medium',
+                    category: 'finance',
+                });
+            }
+
+            // Top product recommendations
+            if (this.topProducts.length > 0 && this.topProducts[0].sales > 0) {
+                recommendations.push({
+                    title: 'Leverage Top Performing Products',
+                    description: `${this.topProducts[0].name} is your best seller. Consider increasing inventory and promoting similar products.`,
+                    priority: 'low',
+                    category: 'marketing',
+                });
+            }
+
+            // Growth recommendations
+            if (this.metrics.month_growth > 10 && this.metrics.sales_growth > 5) {
+                recommendations.push({
+                    title: 'Capitalize on Growth Momentum',
+                    description: 'Strong growth detected. Consider expanding inventory, hiring staff, or investing in marketing to sustain growth.',
+                    priority: 'low',
+                    category: 'growth',
+                });
+            }
+
+            return recommendations;
+        },
+        analyzeTrends() {
+            const insights = [];
+
+            // Sales trend
+            if (this.metrics.sales_growth > 10) {
+                insights.push({
+                    type: 'positive',
+                    message: `Sales up ${this.metrics.sales_growth.toFixed(1)}% today`,
+                });
+            } else if (this.metrics.sales_growth < -10) {
+                insights.push({
+                    type: 'negative',
+                    message: `Sales down ${Math.abs(this.metrics.sales_growth).toFixed(1)}% today`,
+                });
+            }
+
+            // Month growth
+            if (this.metrics.month_growth > 15) {
+                insights.push({
+                    type: 'positive',
+                    message: `Month-over-month growth: ${this.metrics.month_growth.toFixed(1)}%`,
+                });
+            } else if (this.metrics.month_growth < -10) {
+                insights.push({
+                    type: 'negative',
+                    message: `Month-over-month decline: ${Math.abs(this.metrics.month_growth).toFixed(1)}%`,
+                });
+            }
+
+            // Profit trend
+            if (this.metrics.profit > 0) {
+                const profitMargin = (this.metrics.profit / this.metrics.month_sales) * 100;
+                if (profitMargin > 20) {
+                    insights.push({
+                        type: 'positive',
+                        message: `Strong profit margin: ${profitMargin.toFixed(1)}%`,
+                    });
+                } else if (profitMargin < 5) {
+                    insights.push({
+                        type: 'negative',
+                        message: `Low profit margin: ${profitMargin.toFixed(1)}%`,
+                    });
+                }
+            }
+
+            // Customer activity
+            if (this.topCustomers.length > 0) {
+                const avgOrderValue = this.topCustomers.reduce((sum, c) => sum + (c.sales / c.orders), 0) / this.topCustomers.length;
+                insights.push({
+                    type: 'info',
+                    message: `Average order value: ${this.formatCurrency(avgOrderValue)}`,
+                });
+            }
+
+            return insights;
+        },
+        getPerformanceColor(score) {
+            if (score >= 85) return 'success';
+            if (score >= 70) return 'info';
+            if (score >= 50) return 'warning';
+            return 'error';
+        },
+        getRecommendationColor(priority) {
+            const colorMap = {
+                'high': 'error',
+                'medium': 'warning',
+                'low': 'info',
+            };
+            return colorMap[priority] || 'info';
+        },
+        getRecommendationIcon(priority) {
+            const iconMap = {
+                'high': 'mdi-alert',
+                'medium': 'mdi-information',
+                'low': 'mdi-lightbulb',
+            };
+            return iconMap[priority] || 'mdi-information';
         },
         formatCurrency(value) {
             const number = Number(value) || 0;
@@ -611,5 +1081,20 @@ export default {
 :deep(.v-chip-group .v-chip--selected) {
     background-color: rgb(var(--v-theme-primary));
     color: white;
+}
+
+.ai-insights-card {
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.05) 0%, rgba(25, 118, 210, 0.02) 100%);
+    border: 1px solid rgba(25, 118, 210, 0.1);
+}
+
+.insight-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+
+.insight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 </style>
