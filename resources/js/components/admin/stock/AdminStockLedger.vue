@@ -195,14 +195,14 @@
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
 import DatePicker from '../../common/DatePicker.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 
 export default {
     components: {
         PaginationControls,
         DatePicker
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             ledgers: [],
@@ -228,11 +228,6 @@ export default {
             dateFrom: '',
             dateTo: '',
             exporting: false,
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -332,38 +327,6 @@ export default {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadLedger();
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadLedger();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadLedger();
         },
         // Date change handlers - explicitly set the filter value and fetch
         onDateFromChange(value) {

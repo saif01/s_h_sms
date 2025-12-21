@@ -224,11 +224,11 @@ import DatePicker from '../../common/DatePicker.vue';
 import PaginationControls from '../../common/PaginationControls.vue';
 import { formatDateDDMMYYYY } from '../../../utils/formatters';
 import InvoicePrint from './InvoicePrint.js';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 
 export default {
     name: 'AdminSales',
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     components: {
         SaleDialog,
         ViewSaleDialog,
@@ -254,23 +254,6 @@ export default {
                 { title: 'Paid', value: 'paid' },
                 { title: 'Cancelled', value: 'cancelled' },
             ],
-            // Pagination state
-            currentPage: 1,
-            perPage: 10,
-            perPageOptions: [
-                { title: '10', value: 10, description: 'Quick view' },
-                { title: '25', value: 25, description: 'Standard' },
-                { title: '50', value: 50, description: 'Comfortable' },
-                { title: '100', value: 100, description: 'Extended' },
-                { title: '500', value: 500, description: 'Large dataset' },
-                { title: 'Show All', value: 'all', description: 'All records' }
-            ],
-            pagination: {
-                current_page: 1,
-                last_page: 1,
-                per_page: 10,
-                total: 0
-            },
         };
     },
     async mounted() {
@@ -359,38 +342,6 @@ export default {
                 date_to: '',
             };
             this.resetPagination();
-            this.fetchSales();
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.fetchSales();
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.fetchSales();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
             this.fetchSales();
         },
         // Date change handlers - explicitly set the filter value and fetch

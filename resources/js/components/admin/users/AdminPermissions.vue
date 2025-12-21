@@ -315,7 +315,7 @@
 <script>
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 import PermissionDialog from './dialogs/PermissionDialog.vue';
 
 export default {
@@ -323,7 +323,7 @@ export default {
         PaginationControls,
         PermissionDialog
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             permissions: [],
@@ -334,11 +334,6 @@ export default {
             viewMode: 'flat',
             searchQuery: '', // Note: Using searchQuery instead of search for this component
             selectedGroup: null,
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -397,7 +392,7 @@ export default {
                         this.permissions.push(...group);
                     });
                     // Reset pagination for grouped view
-                    paginationUtils.updatePagination(this, {
+                    this.updatePagination({
                         current_page: 1,
                         last_page: 1,
                         per_page: this.permissions.length,
@@ -411,7 +406,7 @@ export default {
                     } else {
                         // Fallback for non-paginated response
                         this.permissions = response.data || [];
-                        paginationUtils.updatePagination(this, {
+                        this.updatePagination({
                             current_page: 1,
                             last_page: 1,
                             per_page: this.permissions.length,
@@ -530,39 +525,6 @@ export default {
                 'system': 'error',
             };
             return colors[group] || 'grey';
-        },
-
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadPermissions();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadPermissions();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadPermissions();
         },
 
         /**

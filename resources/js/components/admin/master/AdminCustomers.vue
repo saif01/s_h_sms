@@ -202,7 +202,7 @@
 <script>
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 import CustomerDialog from './dialogs/CustomerDialog.vue';
 import CustomerViewDialog from './dialogs/CustomerViewDialog.vue';
 
@@ -212,7 +212,7 @@ export default {
         CustomerDialog,
         CustomerViewDialog
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             customers: [],
@@ -225,11 +225,6 @@ export default {
             viewDialog: false,
             selectedCustomer: null,
             editingCustomer: null,
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -311,38 +306,6 @@ export default {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadCustomers();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadCustomers();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadCustomers();
         },
         isSortingBy(field) {
             return this.sortBy === field;

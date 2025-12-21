@@ -324,14 +324,14 @@
 <script>
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 import { formatDateShort } from '../../../utils/formatters';
 
 export default {
     components: {
         PaginationControls
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             logs: [],
@@ -349,11 +349,6 @@ export default {
             ],
             viewDialog: false,
             selectedLog: null,
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -424,38 +419,6 @@ export default {
         truncateText(text, length) {
             if (!text) return '-';
             return text.length > length ? text.substring(0, length) + '...' : text;
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadLogs();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadLogs();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadLogs();
         }
     }
 };

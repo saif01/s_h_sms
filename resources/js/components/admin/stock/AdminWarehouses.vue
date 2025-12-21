@@ -166,7 +166,7 @@
 import axios from '@/utils/axios.config';
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 import WarehouseDialog from './dialogs/WarehouseDialog.vue';
 import WarehouseViewDialog from './dialogs/WarehouseViewDialog.vue';
 
@@ -177,7 +177,7 @@ export default {
         WarehouseDialog,
         WarehouseViewDialog,
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             warehouses: [],
@@ -185,11 +185,6 @@ export default {
             viewDialog: false,
             saving: false,
             selectedWarehouse: null,
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -289,36 +284,8 @@ export default {
                 this.handleApiError(error, 'Failed to delete warehouse');
             }
         },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadWarehouses();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
         onPageChange(page) {
             this.currentPage = page;
-            this.loadWarehouses();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
             this.loadWarehouses();
         },
         onSearch() {

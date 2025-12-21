@@ -259,7 +259,7 @@
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
 import DatePicker from '../../common/DatePicker.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
+import { paginationMixin } from '../../../utils/pagination.js';
 
 export default {
     name: 'SalesReports',
@@ -267,7 +267,7 @@ export default {
         PaginationControls,
         DatePicker
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             loading: false,
@@ -289,11 +289,6 @@ export default {
                 { title: 'Paid', value: 'paid' },
                 { title: 'Cancelled', value: 'cancelled' },
             ],
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     mounted() {
@@ -426,38 +421,6 @@ export default {
             // Set the filter value explicitly (handles both v-model update and direct value)
             this.filters.date_to = value || '';
             this.resetPagination(); // Reset to first page when filter changes
-            this.generateReport();
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.generateReport();
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.generateReport();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
             this.generateReport();
         },
         onFilterChange() {

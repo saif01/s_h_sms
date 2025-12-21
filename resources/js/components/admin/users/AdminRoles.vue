@@ -191,9 +191,9 @@
 
 import commonMixin from '../../../mixins/commonMixin';
 import PaginationControls from '../../common/PaginationControls.vue';
+import { paginationMixin } from '../../../utils/pagination.js';
 import RoleDialog from './dialogs/RoleDialog.vue';
 import RolePermissionsDialog from './dialogs/RolePermissionsDialog.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
     components: {
@@ -201,7 +201,7 @@ export default {
         RoleDialog,
         RolePermissionsDialog
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             // List of all roles fetched from API
@@ -233,11 +233,6 @@ export default {
                 { title: 'Active', value: true },
                 { title: 'Inactive', value: false }
             ],
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     computed: {},
@@ -291,7 +286,7 @@ export default {
                 } else {
                     // Non-paginated response (fallback)
                     this.roles = response.data || [];
-                    paginationUtils.updatePagination(this, {
+                    this.updatePagination({
                         current_page: 1,
                         last_page: 1,
                         per_page: this.roles.length,
@@ -460,51 +455,6 @@ export default {
         async onPermissionsSaved() {
             this.selectedRole = null;
             await this.loadRoles();
-        },
-
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        /**
-         * Handle pagination per page change
-         * 
-         * Resets to first page and reloads roles with new page size.
-         */
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadRoles();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadRoles();
-        },
-        /**
-         * Handle table column sorting
-         * 
-         * @param {string} field - Field name to sort by
-         * 
-         * Uses mixin's handleSort method and reloads roles with new sort order.
-         */
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadRoles();
         }
     }
 };

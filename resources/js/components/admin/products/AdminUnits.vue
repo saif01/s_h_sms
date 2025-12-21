@@ -151,7 +151,8 @@
                             </span>
                             <span v-else>
                                 Showing <strong>{{ ((currentPage - 1) * perPage) + 1 }}</strong> to
-                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString() }}</strong> of
+                                <strong>{{ Math.min(currentPage * perPage, pagination.total).toLocaleString()
+                                    }}</strong> of
                                 <strong>{{ pagination.total.toLocaleString() }}</strong> records
                             </span>
                         </span>
@@ -219,15 +220,15 @@
 <script>
 import axios from '@/utils/axios.config';
 import commonMixin from '../../../mixins/commonMixin';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 import PaginationControls from '../../common/PaginationControls.vue';
+import { paginationMixin } from '../../../utils/pagination.js';
 
 export default {
     name: 'AdminUnits',
     components: {
         PaginationControls
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             units: [],
@@ -238,11 +239,6 @@ export default {
             rules: {
                 required: value => !!value || 'This field is required',
             },
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     mounted() {
@@ -382,38 +378,6 @@ export default {
             } catch (error) {
                 this.handleApiError(error, 'Error deleting unit');
             }
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadUnits();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadUnits();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadUnits();
         },
     },
 };

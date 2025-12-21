@@ -204,10 +204,10 @@
 
 <script>
 import commonMixin from '../../../mixins/commonMixin';
+import PaginationControls from '../../common/PaginationControls.vue';
+import { paginationMixin } from '../../../utils/pagination.js';
 import UserProfileDialog from './dialogs/UserProfileDialog.vue';
 import UserDialog from './dialogs/UserDialog.vue';
-import PaginationControls from '../../common/PaginationControls.vue';
-import { defaultPaginationState, paginationUtils } from '../../../utils/pagination.js';
 
 export default {
     components: {
@@ -215,7 +215,7 @@ export default {
         UserDialog,
         PaginationControls
     },
-    mixins: [commonMixin],
+    mixins: [commonMixin, paginationMixin],
     data() {
         return {
             users: [],
@@ -227,11 +227,6 @@ export default {
             currentUserId: null,
             profileDialogVisible: false, // User profile dialog visibility
             selectedUser: null, // User selected for profile view
-            // Pagination state - using centralized defaults
-            currentPage: defaultPaginationState.currentPage,
-            perPage: defaultPaginationState.perPage,
-            perPageOptions: defaultPaginationState.perPageOptions,
-            pagination: { ...defaultPaginationState.pagination },
         };
     },
     async mounted() {
@@ -341,38 +336,6 @@ export default {
                 staff: 'info'
             };
             return colors[roleSlug] || 'primary';
-        },
-        buildPaginationParams(additionalParams = {}) {
-            return paginationUtils.buildPaginationParams(
-                this.currentPage,
-                this.perPage,
-                additionalParams,
-                this.sortBy,
-                this.sortDirection
-            );
-        },
-        updatePagination(responseData) {
-            paginationUtils.updatePagination(this, responseData);
-        },
-        resetPagination() {
-            paginationUtils.resetPagination(this);
-        },
-        onPerPageChange() {
-            this.resetPagination();
-            this.loadUsers();
-        },
-        onPerPageUpdate(value) {
-            this.perPage = value;
-            this.onPerPageChange();
-        },
-        onPageChange(page) {
-            this.currentPage = page;
-            this.loadUsers();
-        },
-        onSort(field) {
-            this.handleSort(field);
-            this.currentPage = 1; // Reset to first page when sorting changes
-            this.loadUsers();
         },
         /**
          * View user profile
