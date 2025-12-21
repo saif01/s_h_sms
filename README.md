@@ -249,7 +249,7 @@ npm run build
     - Visual sort indicators with active/inactive states
     - Total records display
   - **Advanced Search**: Search warehouses by name, code, or city
-  - **Modular Dialogs**: Separate dialog components for add/edit, view, and delete operations
+  - **Modular Dialogs**: Separate dialog components for add/edit and view operations (deletion handled with SweetAlert confirmation)
   - Warehouse name, code, and location
   - Contact information (phone, email)
   - Full address details (address, city, state, postal code, country)
@@ -537,7 +537,7 @@ This application follows the exact tech stack recommended in the PDF:
 |------------|----------------------|-------------------|
 | User & Role Management | ✅ Complete | AdminUsers, AdminRoles, AdminPermissions |
 | Product Management | ✅ Complete | AdminProducts, AdminCategories, AdminUnits, ProductDialog |
-| Stock/Inventory | ✅ Complete | AdminStockLedger, AdminWarehouses, WarehouseDialog, WarehouseViewDialog, WarehouseDeleteDialog |
+| Stock/Inventory | ✅ Complete | AdminStockLedger, AdminWarehouses, WarehouseDialog, WarehouseViewDialog |
 | Supplier & Purchase | ✅ Complete | AdminSuppliers, AdminPurchases, PurchaseDialog |
 | Sales (POS) | ✅ **NEW** | AdminSales, SaleDialog, ViewSaleDialog |
 | Customer & Due | ✅ Complete | AdminCustomers, CustomerDialog, ViewCustomerDialog |
@@ -858,7 +858,7 @@ app/
 │   ├── Controllers/
 │   │   └── Api/              # Admin API controllers
 │   │       ├── auth/         # Authentication
-│   │       ├── logs/         # Login logs
+│   │       ├── logs/         # Login logs, Visitor logs
 │   │       ├── master/       # Customers, Suppliers
 │   │       ├── payments/     # Payment management
 │   │       ├── products/     # Products, Categories, Units
@@ -873,12 +873,16 @@ app/
 ├── Models/                   # Eloquent models
 │   ├── Category.php
 │   ├── Customer.php
+│   ├── LoginLog.php
 │   ├── Payment.php
+│   ├── Permission.php
 │   ├── Product.php
 │   ├── Purchase.php
 │   ├── PurchaseItem.php
+│   ├── Role.php
 │   ├── Sale.php
 │   ├── SalesItem.php
+│   ├── Setting.php
 │   ├── Stock.php
 │   ├── StockLedger.php
 │   ├── Supplier.php
@@ -895,7 +899,7 @@ resources/
 │   ├── components/
 │   │   └── admin/            # Admin panel components
 │   │       ├── auth/         # Login
-│   │       ├── logs/         # Login logs
+│   │       ├── logs/         # Login logs, Visitor logs
 │   │       ├── master/       # Customers, Suppliers
 │   │       ├── products/     # Products, Categories, Units
 │   │       ├── purchase/     # Purchases
@@ -903,7 +907,7 @@ resources/
 │   │       ├── sales/        # Sales/POS with dialogs
 │   │       ├── settings/     # Settings
 │   │       ├── stock/        # Stock Ledger, Warehouses
-│   │       │   └── dialogs/ # Warehouse dialogs (WarehouseDialog, WarehouseViewDialog, WarehouseDeleteDialog)
+│   │       │   └── dialogs/ # Warehouse dialogs (WarehouseDialog, WarehouseViewDialog)
 │   │       └── users/        # Users, Roles, Permissions
 │   ├── stores/               # Pinia stores (auth)
 │   ├── utils/                # Utility functions
@@ -991,7 +995,8 @@ public/
   - Fixed route order for stock-ledger/warehouses endpoint
   - Enhanced date formatting utilities (formatDateShort, formatDateDDMMYYYYHHMM)
 - **Warehouse Management Enhancements** (Latest):
-  - **Modular Dialog Architecture**: Dialogs moved to separate folder (WarehouseDialog, WarehouseViewDialog, WarehouseDeleteDialog)
+  - **Modular Dialog Architecture**: Dialogs moved to separate folder (WarehouseDialog, WarehouseViewDialog)
+  - **Deletion Handling**: Warehouse deletion uses SweetAlert confirmation dialog directly in AdminWarehouses component
   - **Compact Design**: Streamlined UI with density="compact", variant="outlined", and reduced padding
   - **Pagination & Sorting**: Server-side pagination and sortable table headers following category component pattern
   - **Advanced Search**: Real-time search with pagination reset
