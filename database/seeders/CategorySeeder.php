@@ -52,3 +52,17 @@ class CategorySeeder extends Seeder
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
